@@ -1,3 +1,4 @@
+import { useRouter } from "expo-router"; // Importamos el router para navegar
 import React from "react";
 import {
   ScrollView,
@@ -6,18 +7,27 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
+// Corregimos las rutas de importación según tu estructura de carpetas
 import { ActivityItem } from "../../src/components/home/ActivityItem";
+import { GeneralStatus } from "../../src/components/home/GeneralStatus";
 import { HomeHeader } from "../../src/components/home/HomeHeader";
 
 export default function ExploreScreen() {
+  const router = useRouter(); // Hook para la navegación
+
   return (
     <View style={styles.container}>
       <HomeHeader
-        onReportPress={() => console.log("Ir a Report")}
-        onNotifyPress={() => alert("Notificaciones")}
+        onReportPress={() => router.push("/(tabs)/report")}
+        // CAMBIO CLAVE: Quitamos el alert() y ponemos router.push
+        onNotifyPress={() => router.push("/notifications")}
       />
 
-      <ScrollView style={styles.contentCard}>
+      <ScrollView
+        style={styles.contentCard}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>My Recent Activity</Text>
           <TouchableOpacity>
@@ -25,7 +35,6 @@ export default function ExploreScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Usamos el componente reutilizable */}
         <ActivityItem
           icon="checkmark-circle"
           color="#2ECC71"
@@ -44,6 +53,9 @@ export default function ExploreScreen() {
           title="Electrical Problem"
           status="Under Review"
         />
+
+        {/* Agregamos el estatus general que faltaba en tu versión */}
+        <GeneralStatus />
       </ScrollView>
     </View>
   );
