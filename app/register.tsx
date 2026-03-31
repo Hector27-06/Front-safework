@@ -6,7 +6,15 @@ import { RegisterView } from "../src/views/RegisterScreen";
 
 export default function RegisterRoute() {
   const router = useRouter();
-  const form: any = useForm({ name: "", email: "", password: "" });
+
+  const form: any = useForm({
+    name: "",
+    email: "",
+    password: "",
+    position: "",
+    birthday: "",
+  });
+
   const vm: any = useRegisterViewModel();
 
   return (
@@ -14,9 +22,19 @@ export default function RegisterRoute() {
       name={form.name}
       email={form.email}
       password={form.password}
+      position={form.position}
+      birthday={form.birthday}
       onChange={form.onChange}
-      onRegister={() => vm.onRegister(form.name, form.email, form.password)}
-      onBackToLogin={() => router.back()} // REGRESA AL LOGIN
+      onRegister={() =>
+        vm.onRegister(
+          form.name,
+          form.email,
+          form.password,
+          form.position,
+          form.birthday
+        )
+      }
+      onBackToLogin={() => router.back()}
       loading={vm.loading}
     />
   );

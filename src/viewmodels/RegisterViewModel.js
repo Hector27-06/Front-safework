@@ -6,15 +6,15 @@ export const useRegisterViewModel = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  const onRegister = async (name, email, password) => {
-    if (!name || !email || !password) {
+  const onRegister = async (name, email, password, position, birthday) => {
+    if (!name || !email || !password || !position || !birthday) {
       alert("Todos los campos son obligatorios");
       return;
     }
 
     setLoading(true);
     try {
-      const userData = { name, email, password };
+      const userData = { name, email, password, position, birthday };
       await AsyncStorage.setItem("user_safe_work", JSON.stringify(userData));
       alert("¡Usuario registrado con éxito!");
       router.replace("/login");

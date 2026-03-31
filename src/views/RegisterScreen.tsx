@@ -14,6 +14,8 @@ export const RegisterView = ({
   name,
   email,
   password,
+  position,
+  birthday,
   onChange,
   onRegister,
   onBackToLogin,
@@ -72,11 +74,11 @@ export const RegisterView = ({
         />
 
         <AuthInput
-          label="Birthday"
-          placeholder="19/12/1981"
-          value=""
-          onChangeText={() => {}}
-        />
+  label="Birthday"
+  placeholder="19/12/1981"
+  value={birthday}
+  onChangeText={(v) => onChange(v, "birthday")}
+/>
 
         <AuthInput
           label="Password"
