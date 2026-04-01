@@ -141,7 +141,7 @@ export default function HistoryScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "white" },
   header: {
-    backgroundColor: "#4A6295",
+    backgroundColor: "#45BC75",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",

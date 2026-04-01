@@ -304,7 +304,7 @@ export default function CreateReportScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#FFFFFF" },
   header: {
-    backgroundColor: "#4A6295",
+    backgroundColor: "#F17F18",
     paddingVertical: 25,
     paddingTop: 50,
     alignItems: "center",
@@ -388,12 +388,12 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   mainButton: {
-    backgroundColor: "#4A6295",
+    backgroundColor: "#F17F18",
     paddingVertical: 16,
     paddingHorizontal: 35,
     borderRadius: 15,
   },
-  finishButton: { backgroundColor: "#2ECC71", flex: 1, alignItems: "center" },
+  finishButton: { backgroundColor: "#F17F18", flex: 1, alignItems: "center" },
   mainButtonText: { color: "white", fontWeight: "bold", fontSize: 16 },
   backButton: {
     backgroundColor: "#F3F4F6",
@@ -420,7 +420,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 15,
     textAlign: "center",
-    color: "#4A6295",
+    color: "#F17F18",
   },
   areaItem: {
     paddingVertical: 18,
@@ -458,7 +458,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   successBtn: {
-    backgroundColor: "#4A6295",
+    backgroundColor: "#F17F18",
     width: "100%",
     padding: 16,
     borderRadius: 15,

@@ -49,9 +49,7 @@ export default function ProfileScreen() {
       <View style={styles.header}>
         <View style={styles.avatar} />
         <Text style={styles.name}>{user.name || "Usuario"}</Text>
-        <Text style={styles.position}>
-          {user.position || "Sin puesto"}
-        </Text>
+        <Text style={styles.position}>{user.position || "Sin puesto"}</Text>
 
         <View style={styles.tabs}>
           <TouchableOpacity onPress={() => setTab("info")}>
@@ -75,42 +73,32 @@ export default function ProfileScreen() {
             <Input
               label="Name"
               value={user.name}
-              onChange={(v: string) =>
-                setUser({ ...user, name: v })
-              }
+              onChange={(v: string) => setUser({ ...user, name: v })}
             />
 
             <Input
               label="Email"
               value={user.email}
-              onChange={(v: string) =>
-                setUser({ ...user, email: v })
-              }
+              onChange={(v: string) => setUser({ ...user, email: v })}
             />
 
             <Input
               label="Position"
               value={user.position}
-              onChange={(v: string) =>
-                setUser({ ...user, position: v })
-              }
+              onChange={(v: string) => setUser({ ...user, position: v })}
             />
 
             <Input
               label="Birthday"
               value={user.birthday}
-              onChange={(v: string) =>
-                setUser({ ...user, birthday: v })
-              }
+              onChange={(v: string) => setUser({ ...user, birthday: v })}
             />
 
             <Input
               label="Password"
               value={user.password}
               secure
-              onChange={(v: string) =>
-                setUser({ ...user, password: v })
-              }
+              onChange={(v: string) => setUser({ ...user, password: v })}
             />
 
             <TouchableOpacity style={styles.save} onPress={updateUser}>
@@ -121,13 +109,10 @@ export default function ProfileScreen() {
           <>
             <Option
               title="Configuration"
-              onPress={() => router.push("/configuration")}
+              onPress={() => router.push("../cofiguration")}
             />
 
-            <Option
-              title="Privacy"
-              onPress={() => router.push("/privacy")}
-            />
+            <Option title="Privacy" onPress={() => router.push("../privacy")} />
 
             <TouchableOpacity style={styles.logout} onPress={logout}>
               <Text style={styles.logoutText}>LogOut</Text>
@@ -163,13 +148,7 @@ const Input = ({
 );
 
 /* 🔹 OPTION COMPONENT */
-const Option = ({
-  title,
-  onPress,
-}: {
-  title: string;
-  onPress: () => void;
-}) => (
+const Option = ({ title, onPress }: { title: string; onPress: () => void }) => (
   <TouchableOpacity style={styles.option} onPress={onPress}>
     <Text>{title}</Text>
   </TouchableOpacity>
