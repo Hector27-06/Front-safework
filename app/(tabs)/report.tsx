@@ -1,10 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
-  Dimensions,
   FlatList,
   Image,
   Modal,
@@ -19,8 +19,6 @@ import {
 import { StatusFace } from "../../src/components/common/StatusFace";
 import PrioritySelector from "../../src/components/report/PrioritySelector";
 
-const { width } = Dimensions.get("window");
-
 const AREAS_PLANTA = [
   "Almacén Central",
   "Línea de Ensamblaje",
@@ -32,7 +30,7 @@ const AREAS_PLANTA = [
 ];
 
 export default function CreateReportScreen() {
-  // --- ESTADOS ---
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [showAreaModal, setShowAreaModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -45,68 +43,52 @@ export default function CreateReportScreen() {
     areaIncidente: "",
   });
 
-  // --- LÓGICA DE NAVEGACIÓN Y CÁMARA ---
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert(
-        "Permiso denegado",
-        "Necesitamos acceso a tu cámara para la evidencia.",
-      );
+      Alert.alert("Permiso denegado", "Necesitamos acceso a tu cámara.");
       return;
     }
-
     let result = await ImagePicker.launchCameraAsync({
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.6,
     });
-
-    if (!result.canceled) {
-      setImage(result.assets[0].uri);
-    }
+    if (!result.canceled) setImage(result.assets[0].uri);
   };
 
-  const handleNext = () => {
-    if (currentStep === 1 && (!form.titulo || !form.areaIncidente)) {
-      Alert.alert(
-        "Datos faltantes",
-        "Por favor completa el título y el área antes de continuar.",
-      );
-      return;
-    }
-    setCurrentStep(currentStep + 1);
-  };
-
-  // --- GUARDADO LOCAL ---
   const handleSubmit = async () => {
     try {
+      const userDataRaw = await AsyncStorage.getItem("userData");
+      const userData = userDataRaw ? JSON.parse(userDataRaw) : null;
+
       const newReport = {
-        _id: Date.now().toString(), // ID único basado en tiempo
+        _id: Date.now().toString(),
         ...form,
         evidencia: image,
         fechaCreacion: new Date().toISOString(),
-        estado: "Pendiente (Local)",
+        estado: "Abierto",
+        // Vinculación con contrato
+        reportadoPor: userData?.email || "Usuario Local",
+        areaUsuario: userData?.area || "General",
+        supervisorArea: `Supervisor de ${form.areaIncidente}`,
       };
 
-      // Guardar en la lista local existente
       const existingData = await AsyncStorage.getItem("@local_reports");
       const reports = existingData ? JSON.parse(existingData) : [];
-      const updatedReports = [newReport, ...reports];
-
       await AsyncStorage.setItem(
         "@local_reports",
-        JSON.stringify(updatedReports),
+        JSON.stringify([newReport, ...reports]),
       );
 
-      // Mostrar el modal de éxito según el diseño
       setShowSuccessModal(true);
     } catch (e) {
-      Alert.alert("Error", "No se pudo guardar el reporte localmente.");
+      Alert.alert("Error", "No se pudo guardar el reporte.");
     }
   };
 
-  const resetFlow = () => {
+  const resetAndGoHistory = () => {
+    setShowSuccessModal(false);
     setForm({
       titulo: "",
       descripcion: "",
@@ -115,29 +97,22 @@ export default function CreateReportScreen() {
     });
     setImage(null);
     setCurrentStep(1);
-    setShowSuccessModal(false);
+    router.push("/(tabs)/history");
   };
 
-  // --- RENDERIZADO DE CONTENIDO POR PASOS ---
   const renderStepContent = () => {
     switch (currentStep) {
-      case 1: // Paso 1: Datos Básicos
+      case 1:
         return (
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>Información del Incidente</Text>
-            <Text style={styles.stepSubtitle}>
-              Cuéntanos qué está pasando en la planta.
-            </Text>
-
             <Text style={styles.inputLabel}>Título del Reporte</Text>
             <TextInput
               style={styles.input}
               placeholder="Ej. Derrame de líquido"
-              placeholderTextColor="#9CA3AF"
               value={form.titulo}
               onChangeText={(v) => setForm({ ...form, titulo: v })}
             />
-
             <Text style={styles.inputLabel}>Área / Ubicación</Text>
             <TouchableOpacity
               style={styles.selectorInput}
@@ -149,20 +124,16 @@ export default function CreateReportScreen() {
                   !form.areaIncidente && { color: "#9CA3AF" },
                 ]}
               >
-                {form.areaIncidente || "Selecciona el área afectada"}
+                {form.areaIncidente || "Selecciona el área"}
               </Text>
               <Ionicons name="chevron-down" size={20} color="#4A6295" />
             </TouchableOpacity>
           </View>
         );
-      case 2: // Paso 2: Evidencia
+      case 2:
         return (
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>Evidencia Visual</Text>
-            <Text style={styles.stepSubtitle}>
-              ¿Tienes alguna foto del incidente?
-            </Text>
-
             {image ? (
               <View style={styles.imageWrapper}>
                 <Image source={{ uri: image }} style={styles.imagePreview} />
@@ -181,23 +152,20 @@ export default function CreateReportScreen() {
             )}
           </View>
         );
-      case 3: // Paso 3: Gravedad
+      case 3:
         return (
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>Prioridad y Detalles</Text>
-
             <Text style={styles.inputLabel}>Nivel de Gravedad</Text>
             <PrioritySelector
               selected={form.nivelGravedad}
               onSelect={(v: string) => setForm({ ...form, nivelGravedad: v })}
             />
-
-            <Text style={styles.inputLabel}>Descripción (Opcional)</Text>
+            <Text style={styles.inputLabel}>Descripción</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
               multiline
-              placeholder="Añade más detalles sobre el riesgo..."
-              placeholderTextColor="#9CA3AF"
+              placeholder="Detalles adicionales..."
               value={form.descripcion}
               onChangeText={(v) => setForm({ ...form, descripcion: v })}
             />
@@ -208,7 +176,6 @@ export default function CreateReportScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* HEADER CON PROGRESO */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Nuevo Reporte</Text>
         <View style={styles.progressContainer}>
@@ -221,13 +188,8 @@ export default function CreateReportScreen() {
         </View>
       </View>
 
-      <ScrollView
-        style={styles.mainScroll}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView style={styles.mainScroll}>
         {renderStepContent()}
-
-        {/* NAVEGACIÓN ENTRE PASOS */}
         <View style={styles.footerButtons}>
           {currentStep > 1 && (
             <TouchableOpacity
@@ -237,13 +199,13 @@ export default function CreateReportScreen() {
               <Text style={styles.backButtonText}>Atrás</Text>
             </TouchableOpacity>
           )}
-
           <TouchableOpacity
-            style={[
-              styles.mainButton,
-              currentStep === 3 && styles.finishButton,
-            ]}
-            onPress={currentStep === 3 ? handleSubmit : handleNext}
+            style={styles.mainButton}
+            onPress={
+              currentStep === 3
+                ? handleSubmit
+                : () => setCurrentStep(currentStep + 1)
+            }
           >
             <Text style={styles.mainButtonText}>
               {currentStep === 3 ? "FINALIZAR" : "Siguiente"}
@@ -252,14 +214,12 @@ export default function CreateReportScreen() {
         </View>
       </ScrollView>
 
-      {/* MODAL DE SELECCIÓN DE ÁREAS */}
+      {/* Modal Áreas */}
       <Modal visible={showAreaModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Seleccionar Ubicación</Text>
             <FlatList
               data={AREAS_PLANTA}
-              keyExtractor={(item) => item}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={styles.areaItem}
@@ -272,27 +232,24 @@ export default function CreateReportScreen() {
                 </TouchableOpacity>
               )}
             />
-            <TouchableOpacity
-              style={styles.modalClose}
-              onPress={() => setShowAreaModal(false)}
-            >
-              <Text style={styles.modalCloseText}>Cancelar</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </Modal>
 
-      {/* MODAL DE ÉXITO (Diseño Final) */}
+      {/* Modal Éxito */}
       <Modal visible={showSuccessModal} transparent animationType="fade">
         <View style={styles.successOverlay}>
           <View style={styles.successCard}>
-            <StatusFace type="happy" size={85} />
-            <Text style={styles.successTitle}>¡Reporte Registrado!</Text>
+            <StatusFace type="happy" size={80} />
+            <Text style={styles.successTitle}>¡Registrado!</Text>
             <Text style={styles.successMsg}>
-              El reporte se guardó localmente en el historial de tu dispositivo.
+              El reporte se envió al supervisor de {form.areaIncidente}.
             </Text>
-            <TouchableOpacity style={styles.successBtn} onPress={resetFlow}>
-              <Text style={styles.successBtnText}>Aceptar</Text>
+            <TouchableOpacity
+              style={styles.successBtn}
+              onPress={resetAndGoHistory}
+            >
+              <Text style={styles.successBtnText}>Ir al Historial</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -301,11 +258,12 @@ export default function CreateReportScreen() {
   );
 }
 
+// Estilos resumidos (usa los mismos que ya tenías)
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#FFFFFF" },
+  safeArea: { flex: 1, backgroundColor: "#FFF" },
   header: {
     backgroundColor: "#F17F18",
-    paddingVertical: 25,
+    padding: 25,
     paddingTop: 50,
     alignItems: "center",
   },
@@ -314,95 +272,70 @@ const styles = StyleSheet.create({
     height: 4,
     width: "70%",
     backgroundColor: "rgba(255,255,255,0.2)",
-    borderRadius: 2,
     marginTop: 12,
   },
-  progressLine: { height: "100%", backgroundColor: "#FFF", borderRadius: 2 },
-
-  mainScroll: { flex: 1, paddingHorizontal: 25 },
-  stepContainer: { paddingTop: 20 },
-  stepTitle: { fontSize: 22, fontWeight: "bold", color: "#111827" },
-  stepSubtitle: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginTop: 4,
-    marginBottom: 15,
-  },
-
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#374151",
-    marginTop: 22,
-    marginBottom: 8,
-  },
+  progressLine: { height: "100%", backgroundColor: "#FFF" },
+  mainScroll: { padding: 25 },
+  stepContainer: { paddingTop: 10 },
+  stepTitle: { fontSize: 22, fontWeight: "bold", marginBottom: 10 },
+  inputLabel: { fontWeight: "700", marginTop: 20, marginBottom: 8 },
   input: {
     borderWidth: 1,
     borderColor: "#E5E7EB",
-    borderRadius: 14,
+    borderRadius: 12,
     padding: 15,
     backgroundColor: "#F9FAFB",
-    fontSize: 15,
   },
   selectorInput: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
     borderWidth: 1,
     borderColor: "#E5E7EB",
-    borderRadius: 14,
+    borderRadius: 12,
     padding: 15,
-    backgroundColor: "#F9FAFB",
   },
-  selectorText: { fontSize: 15, color: "#111827" },
-  textArea: { height: 100, textAlignVertical: "top" },
-
+  selectorText: { fontSize: 15 },
   cameraBox: {
-    height: 160,
+    height: 150,
     borderWidth: 2,
     borderColor: "#4A6295",
     borderStyle: "dashed",
-    borderRadius: 18,
+    borderRadius: 15,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#F8FAFF",
-    marginTop: 10,
   },
-  cameraBoxText: { color: "#4A6295", fontWeight: "bold", marginTop: 10 },
-  imageWrapper: { position: "relative", marginTop: 10 },
-  imagePreview: { width: "100%", height: 250, borderRadius: 18 },
+  cameraBoxText: { color: "#4A6295", fontWeight: "bold", marginTop: 5 },
+  imagePreview: { width: "100%", height: 200, borderRadius: 15 },
+  imageWrapper: { position: "relative" },
   deleteBtn: {
     position: "absolute",
     top: 10,
     right: 10,
-    backgroundColor: "rgba(255,59,48,0.8)",
-    padding: 10,
-    borderRadius: 25,
+    backgroundColor: "red",
+    padding: 8,
+    borderRadius: 20,
   },
-
   footerButtons: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    marginTop: 40,
-    paddingBottom: 30,
-    gap: 12,
+    marginTop: 30,
+    gap: 10,
   },
   mainButton: {
     backgroundColor: "#F17F18",
-    paddingVertical: 16,
-    paddingHorizontal: 35,
-    borderRadius: 15,
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 12,
   },
-  finishButton: { backgroundColor: "#F17F18", flex: 1, alignItems: "center" },
-  mainButtonText: { color: "white", fontWeight: "bold", fontSize: 16 },
+  mainButtonText: { color: "white", fontWeight: "bold" },
   backButton: {
-    backgroundColor: "#F3F4F6",
-    paddingVertical: 16,
-    paddingHorizontal: 35,
-    borderRadius: 15,
+    backgroundColor: "#EEE",
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 12,
   },
-  backButtonText: { color: "#4B5563", fontWeight: "bold" },
-
+  backButtonText: { color: "#666" },
+  textArea: { height: 80, textAlignVertical: "top" },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
@@ -410,60 +343,35 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: "white",
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    padding: 25,
-    maxHeight: "60%",
+    padding: 20,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 15,
-    textAlign: "center",
-    color: "#F17F18",
-  },
-  areaItem: {
-    paddingVertical: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
-  },
-  areaItemText: { fontSize: 16, textAlign: "center", color: "#374151" },
-  modalClose: { marginTop: 10, padding: 15 },
-  modalCloseText: { color: "#FF3B30", textAlign: "center", fontWeight: "bold" },
-
+  areaItem: { padding: 15, borderBottomWidth: 1, borderBottomColor: "#EEE" },
+  areaItemText: { fontSize: 16 },
   successOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.7)",
+    backgroundColor: "rgba(0,0,0,0.8)",
     justifyContent: "center",
     alignItems: "center",
-    padding: 25,
+    padding: 20,
   },
   successCard: {
     backgroundColor: "white",
-    padding: 35,
-    borderRadius: 30,
+    padding: 30,
+    borderRadius: 20,
     alignItems: "center",
     width: "100%",
   },
-  successTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginTop: 25,
-    color: "#111827",
-  },
-  successMsg: {
-    textAlign: "center",
-    color: "#6B7280",
-    marginTop: 10,
-    lineHeight: 22,
-  },
+  successTitle: { fontSize: 20, fontWeight: "bold", marginTop: 15 },
+  successMsg: { textAlign: "center", color: "#666", marginVertical: 10 },
   successBtn: {
     backgroundColor: "#F17F18",
     width: "100%",
-    padding: 16,
-    borderRadius: 15,
-    marginTop: 30,
+    padding: 15,
+    borderRadius: 12,
     alignItems: "center",
+    marginTop: 10,
   },
-  successBtnText: { color: "white", fontWeight: "bold", fontSize: 16 },
+  successBtnText: { color: "white", fontWeight: "bold" },
 });

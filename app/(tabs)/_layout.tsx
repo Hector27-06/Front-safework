@@ -8,7 +8,8 @@ export default function TabLayout() {
 
   useEffect(() => {
     const checkRole = async () => {
-      const savedRole = await AsyncStorage.getItem("userRole"); //
+      // Obtenemos el rol para decidir si mostrar o no el registro de usuarios
+      const savedRole = await AsyncStorage.getItem("userRole");
       setRole(savedRole);
     };
     checkRole();
@@ -17,8 +18,17 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
+        // Color del icono seleccionado
         tabBarActiveTintColor: "#FFC107",
-        headerShown: false, // 👈 ESTO ELIMINA EL TÍTULO BLANCO DE ARRIBA
+        // Color del icono inactivo
+        tabBarInactiveTintColor: "#8E8E93",
+        // Ocultamos el header nativo de Expo para usar el tuyo personalizado
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: "#FFFFFF",
+          paddingBottom: 5,
+          height: 60,
+        },
       }}
     >
       <Tabs.Screen
@@ -61,7 +71,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Ocultamos la pestaña de registro si no es Gerente */}
+      {/* Solo se muestra si el usuario es "Gerente" */}
       <Tabs.Screen
         name="userRegister"
         options={{

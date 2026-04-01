@@ -1,7 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
+  Alert,
   Image,
   SafeAreaView,
   ScrollView,
@@ -10,19 +12,38 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-// IMPORTANTE: Al mover el archivo, la ruta a src cambia a un solo nivel de salida
-import { FaceType, StatusFace } from "../src/components/common/StatusFace";
 
 export default function ReportDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const [role, setRole] = useState<string | null>(null);
+  const [area, setArea] = useState<string | null>(null);
+  const [status, setStatus] = useState(params.estado);
 
-  // Mapeo de nivelGravedad del contrato a icono
-  const getFaceFromGravity = (gravedad: any): FaceType => {
-    if (gravedad === "Alto") return "sad";
-    if (gravedad === "Medio") return "neutral";
-    return "happy";
+  useEffect(() => {
+    const getInfo = async () => {
+      setRole(await AsyncStorage.getItem("userRole"));
+      const userData = await AsyncStorage.getItem("userData");
+      if (userData) setArea(JSON.parse(userData).area);
+    };
+    getInfo();
+  }, []);
+
+  const handleResolve = async () => {
+    const data = await AsyncStorage.getItem("@local_reports");
+    if (data) {
+      let reports = JSON.parse(data).map((r: any) =>
+        r._id === params._id ? { ...r, estado: "Resuelto" } : r,
+      );
+      await AsyncStorage.setItem("@local_reports", JSON.stringify(reports));
+      setStatus("Resuelto");
+      Alert.alert("Éxito", "Incidente marcado como resuelto.");
+    }
   };
+
+  const canResolve =
+    role === "Gerente" ||
+    (role === "Supervisor" && area === params.areaIncidente);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -30,68 +51,34 @@ export default function ReportDetailScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Report Details</Text>
+        <Text style={styles.headerTitle}>Detalles</Text>
         <View style={{ width: 24 }} />
       </View>
-
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        <Text style={styles.sectionTitle}>File Preview</Text>
-        <Image
-          source={{ uri: "https://via.placeholder.com/400x250" }}
-          style={styles.previewImage}
-        />
-
-        <View style={styles.infoCard}>
-          <Text style={styles.detailTitle}>Detailed Information</Text>
-
-          <View style={styles.row}>
-            <Text style={styles.label}>Report ID: </Text>
-            <Text style={styles.value}>{params._id}</Text>
-          </View>
-
-          <View style={styles.row}>
-            <Text style={styles.label}>Location / Area: </Text>
-            <Text style={styles.value}>{params.areaIncidente}</Text>
-          </View>
-
-          <View style={styles.row}>
-            <Text style={styles.label}>Date: </Text>
-            <Text style={styles.value}>
-              {params.fechaCreacion
-                ? new Date(params.fechaCreacion as string).toLocaleDateString()
-                : "N/A"}
+      <ScrollView style={styles.container}>
+        {params.evidencia && (
+          <Image
+            source={{ uri: params.evidencia as string }}
+            style={styles.img}
+          />
+        )}
+        <View style={styles.card}>
+          <Text style={styles.label}>
+            Estado:{" "}
+            <Text style={{ color: status === "Resuelto" ? "green" : "orange" }}>
+              {status}
             </Text>
-          </View>
+          </Text>
+          <Text style={styles.label}>
+            Área: <Text style={styles.val}>{params.areaIncidente}</Text>
+          </Text>
+          <Text style={styles.descTitle}>Descripción</Text>
+          <Text style={styles.descText}>{params.descripcion}</Text>
 
-          <View style={styles.separator} />
-
-          <View style={styles.row}>
-            <Text style={styles.label}>Type: </Text>
-            <Text style={styles.value}>{params.titulo}</Text>
-          </View>
-
-          <View style={styles.priorityRow}>
-            <Text style={styles.label}>Priority: </Text>
-            <StatusFace
-              type={getFaceFromGravity(params.nivelGravedad)}
-              size={20}
-            />
-            <Text style={[styles.value, { marginLeft: 8, fontWeight: "bold" }]}>
-              {params.nivelGravedad}
-            </Text>
-          </View>
-
-          <View style={styles.row}>
-            <Text style={styles.label}>Status: </Text>
-            <Text
-              style={[styles.value, { color: "#2ECC71", fontWeight: "bold" }]}
-            >
-              {params.estado}
-            </Text>
-          </View>
-
-          <Text style={styles.detailTitle}>Description</Text>
-          <Text style={styles.descriptionText}>{params.descripcion}</Text>
+          {canResolve && status !== "Resuelto" && (
+            <TouchableOpacity style={styles.btn} onPress={handleResolve}>
+              <Text style={styles.btnText}>MARCAR COMO RESUELTO</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -106,23 +93,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     padding: 20,
-    paddingTop: 45,
+    paddingTop: 50,
   },
   headerTitle: { color: "white", fontSize: 18, fontWeight: "bold" },
   container: { flex: 1, padding: 20 },
-  sectionTitle: { fontSize: 16, fontWeight: "bold", marginBottom: 15 },
-  previewImage: { width: "100%", height: 220, borderRadius: 15 },
-  infoCard: { marginTop: 10 },
-  detailTitle: {
-    fontSize: 17,
-    fontWeight: "bold",
-    marginTop: 20,
-    marginBottom: 10,
+  img: { width: "100%", height: 250, borderRadius: 15 },
+  card: { marginTop: 20 },
+  label: { fontWeight: "bold", fontSize: 16, marginBottom: 10 },
+  val: { fontWeight: "normal", color: "#666" },
+  descTitle: { fontWeight: "bold", marginTop: 20 },
+  descText: { color: "#666", marginTop: 5, lineHeight: 20 },
+  btn: {
+    backgroundColor: "#2ECC71",
+    padding: 15,
+    borderRadius: 10,
+    marginTop: 30,
+    alignItems: "center",
   },
-  row: { flexDirection: "row", marginBottom: 8 },
-  priorityRow: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
-  label: { fontSize: 14, fontWeight: "700", color: "#333" },
-  value: { fontSize: 14, color: "#666" },
-  separator: { height: 1, backgroundColor: "#EEE", marginVertical: 15 },
-  descriptionText: { fontSize: 14, color: "#666", lineHeight: 20 },
+  btnText: { color: "white", fontWeight: "bold" },
 });
