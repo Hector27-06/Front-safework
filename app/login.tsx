@@ -19,7 +19,7 @@ export default function LoginRoute() {
           router.replace("/(tabs)/explore");
         })
       }
-      onSignUp={() => router.push("/register")} // RUTA HACIA register.tsx
+      onSignUp={() => router.push("../register")} // RUTA HACIA register.tsx
       loading={vm.loading}
       error={vm.error}
     />

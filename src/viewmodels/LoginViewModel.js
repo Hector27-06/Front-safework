@@ -1,35 +1,40 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
 import { useState } from "react";
+import apiUsers from "../models/users";
 
 export const useLoginViewModel = () => {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
 
-  const onLogin = async (email, password) => {
-    setError("");
-    if (!email || !password) {
-      setError("Completa todos los campos");
-      return;
-    }
-
+  const onLogin = async (email, password, onSuccess) => {
     setLoading(true);
-    try {
-      const res = await AsyncStorage.getItem("user_safe_work");
-      const user = res ? JSON.parse(res) : null;
+    setError(null);
 
-      if (
-        user &&
-        user.email.trim() === email.trim() &&
-        user.password === password
-      ) {
-        router.replace("/(tabs)/explore");
-      } else {
-        setError("Correo o contraseña incorrectos");
+    try {
+      const response = await apiUsers.post("/auth/loginUser", {
+        email: email,
+        password: password,
+      });
+
+      if (response.data.token) {
+        // 1. Guardamos el Token para las peticiones API
+        await AsyncStorage.setItem("userToken", response.data.token);
+
+        // 2. Guardamos el Rol para ocultar el registro
+        await AsyncStorage.setItem("userRole", response.data.usuario.rol);
+
+        // 3. ¡ESTA ES LA QUE FALTA!: Guardamos TODO el usuario como texto JSON
+        // Esto permite que el Perfil muestre el nombre, área, etc.
+        await AsyncStorage.setItem(
+          "userData",
+          JSON.stringify(response.data.usuario),
+        );
+
+        onSuccess();
       }
-    } catch (e) {
-      setError("Error al leer datos");
+    } catch (err) {
+      console.log("Error en Login:", err.response?.data);
+      setError(err.response?.data?.message || "Error al iniciar sesión");
     } finally {
       setLoading(false);
     }

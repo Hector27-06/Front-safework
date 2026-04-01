@@ -1,30 +1,36 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
 import { useState } from "react";
+import apiUsers from "../models/users";
 
 export const useRegisterViewModel = () => {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const onRegister = async (name, email, password, position, birthday) => {
-    if (!name || !email || !password || !position || !birthday) {
-      alert("Todos los campos son obligatorios");
-      return;
-    }
-
+  const onRegister = async (email, password, rol, area, onSuccess) => {
     setLoading(true);
+    setError(null);
+
     try {
-      const userData = { name, email, password, position, birthday };
-      await AsyncStorage.setItem("user_safe_work", JSON.stringify(userData));
-      alert("¡Usuario registrado con éxito!");
-      router.replace("/login");
-    } catch (e) {
-      alert("Error al guardar el usuario");
+      // El endpoint debe empezar con / para sumarse a la baseURL
+      const response = await apiUsers.post("/auth/createUser", {
+        email,
+        password,
+        rol,
+        area,
+      });
+
+      if (response.status === 201) {
+        onSuccess();
+      }
+    } catch (err) {
+      // Si hay error, extraemos el mensaje del servidor
+      const serverMsg =
+        err.response?.data?.message || "Error 404: Ruta no encontrada";
+      setError(serverMsg);
+      console.log("Error en registro:", err.response?.status, err.config?.url);
     } finally {
       setLoading(false);
     }
   };
 
-  // Estos nombres deben coincidir con tu register.tsx
-  return { onRegister, loading };
+  return { onRegister, loading, error };
 };

@@ -2,6 +2,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
+  Alert,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -11,15 +13,15 @@ import {
 
 export default function ProfileScreen() {
   const router = useRouter();
-
   const [tab, setTab] = useState<"info" | "options">("info");
+  const [role, setRole] = useState(""); // Para controlar la visibilidad del registro
 
   const [user, setUser] = useState({
     name: "",
     email: "",
     password: "",
-    position: "",
-    birthday: "",
+    position: "", // Aquí mapearemos el 'rol' de la API
+    area: "", // Añadimos área del contrato
   });
 
   useEffect(() => {
@@ -27,29 +29,38 @@ export default function ProfileScreen() {
   }, []);
 
   const loadUser = async () => {
-    const data = await AsyncStorage.getItem("user_safe_work");
-    if (data) {
-      setUser(JSON.parse(data));
-    }
-  };
+    // 1. Cargamos el objeto completo del usuario
+    const data = await AsyncStorage.getItem("userData");
+    const savedRole = await AsyncStorage.getItem("userRole");
 
-  const updateUser = async () => {
-    await AsyncStorage.setItem("user_safe_work", JSON.stringify(user));
-    alert("Perfil actualizado");
+    if (data) {
+      const parsedUser = JSON.parse(data);
+      setUser({
+        name: parsedUser.email.split("@")[0], // Usamos el prefijo del email como nombre temporal
+        email: parsedUser.email,
+        password: "********",
+        position: parsedUser.rol,
+        area: parsedUser.area,
+      });
+    }
+    setRole(savedRole || "");
   };
 
   const logout = async () => {
-    await AsyncStorage.removeItem("user_safe_work");
+    // Limpiamos todo al salir
+    await AsyncStorage.multiRemove(["userToken", "userRole", "userData"]);
     router.replace("/login");
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       {/* HEADER */}
       <View style={styles.header}>
         <View style={styles.avatar} />
-        <Text style={styles.name}>{user.name || "Usuario"}</Text>
-        <Text style={styles.position}>{user.position || "Sin puesto"}</Text>
+        <Text style={styles.name}>{user.email || "Usuario"}</Text>
+        <Text style={styles.position}>
+          {user.position} - {user.area}
+        </Text>
 
         <View style={styles.tabs}>
           <TouchableOpacity onPress={() => setTab("info")}>
@@ -70,167 +81,137 @@ export default function ProfileScreen() {
       <View style={styles.card}>
         {tab === "info" ? (
           <>
-            <Input
-              label="Name"
-              value={user.name}
-              onChange={(v: string) => setUser({ ...user, name: v })}
-            />
+            <Input label="Email" value={user.email} editable={false} />
+            <Input label="Role" value={user.position} editable={false} />
+            <Input label="Area" value={user.area} editable={false} />
 
-            <Input
-              label="Email"
-              value={user.email}
-              onChange={(v: string) => setUser({ ...user, email: v })}
-            />
-
-            <Input
-              label="Position"
-              value={user.position}
-              onChange={(v: string) => setUser({ ...user, position: v })}
-            />
-
-            <Input
-              label="Birthday"
-              value={user.birthday}
-              onChange={(v: string) => setUser({ ...user, birthday: v })}
-            />
-
-            <Input
-              label="Password"
-              value={user.password}
-              secure
-              onChange={(v: string) => setUser({ ...user, password: v })}
-            />
-
-            <TouchableOpacity style={styles.save} onPress={updateUser}>
-              <Text style={styles.saveText}>Save</Text>
+            <TouchableOpacity
+              style={styles.save}
+              onPress={() =>
+                Alert.alert(
+                  "SafeWork",
+                  "Contacta a sistemas para editar datos.",
+                )
+              }
+            >
+              <Text style={styles.saveText}>Edit Profile</Text>
             </TouchableOpacity>
           </>
         ) : (
           <>
+            {/* LÓGICA DE VISIBILIDAD: Solo aparece si es Gerente */}
+            {role === "Gerente" && (
+              <Option
+                title="Register New Personnel"
+                onPress={() => router.push("/(tabs)/userRegister")}
+                isSpecial
+              />
+            )}
+
             <Option
               title="Configuration"
-              onPress={() => router.push("../cofiguration")}
+              onPress={() => router.push("../configuration")}
+            />
+            <Option
+              title="Privacy Policy"
+              onPress={() => router.push("../privacy")}
             />
 
-            <Option title="Privacy" onPress={() => router.push("../privacy")} />
-
             <TouchableOpacity style={styles.logout} onPress={logout}>
-              <Text style={styles.logoutText}>LogOut</Text>
+              <Text style={styles.logoutText}>Log Out</Text>
             </TouchableOpacity>
           </>
         )}
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
-/* 🔹 INPUT COMPONENT */
-const Input = ({
-  label,
-  value,
-  onChange,
-  secure,
-}: {
-  label: string;
-  value: string;
-  onChange: (text: string) => void;
-  secure?: boolean;
-}) => (
+/* 🔹 COMPONENTS */
+const Input = ({ label, value, editable = true }: any) => (
   <View style={styles.inputContainer}>
     <Text style={styles.label}>{label}</Text>
     <TextInput
-      value={value || ""}
-      onChangeText={onChange}
-      secureTextEntry={secure}
-      style={styles.input}
+      value={value}
+      editable={editable}
+      style={[
+        styles.input,
+        !editable && { backgroundColor: "#f9f9f9", color: "#888" },
+      ]}
     />
   </View>
 );
 
-/* 🔹 OPTION COMPONENT */
-const Option = ({ title, onPress }: { title: string; onPress: () => void }) => (
-  <TouchableOpacity style={styles.option} onPress={onPress}>
-    <Text>{title}</Text>
+const Option = ({ title, onPress, isSpecial }: any) => (
+  <TouchableOpacity
+    style={[
+      styles.option,
+      isSpecial && {
+        backgroundColor: "#fff9e6",
+        borderLeftWidth: 4,
+        borderLeftColor: "#FFC107",
+      },
+    ]}
+    onPress={onPress}
+  >
+    <Text style={[isSpecial && { fontWeight: "bold", color: "#4A6295" }]}>
+      {title}
+    </Text>
   </TouchableOpacity>
 );
 
-/* 🔹 STYLES */
+/* 🔹 STYLES (Manteniendo tus colores) */
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#eee" },
-
-  header: {
-    backgroundColor: "#FFC107",
-    padding: 20,
-    alignItems: "center",
-  },
-
+  header: { backgroundColor: "#FFC107", padding: 30, alignItems: "center" },
   avatar: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: "#ddd",
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#fff",
     marginBottom: 10,
   },
-
-  name: { fontWeight: "bold", fontSize: 16 },
-  position: { fontSize: 12, marginBottom: 10 },
-
-  tabs: { flexDirection: "row" },
-  tab: { marginHorizontal: 10, color: "#555" },
-
+  name: { fontWeight: "bold", fontSize: 18, color: "#333" },
+  position: { fontSize: 14, color: "#555", marginBottom: 15 },
+  tabs: { flexDirection: "row", marginTop: 10 },
+  tab: { marginHorizontal: 15, color: "#666" },
   activeTab: {
-    marginHorizontal: 10,
+    marginHorizontal: 15,
     fontWeight: "bold",
-    borderBottomWidth: 2,
+    borderBottomWidth: 3,
+    borderBottomColor: "#333",
+    paddingBottom: 5,
   },
-
   card: {
     backgroundColor: "#fff",
     margin: 15,
-    padding: 15,
-    borderRadius: 15,
+    padding: 20,
+    borderRadius: 20,
+    elevation: 3,
   },
-
-  inputContainer: { marginBottom: 10 },
-  label: { fontSize: 12 },
-
-  input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 10,
-    marginTop: 5,
-  },
-
+  inputContainer: { marginBottom: 15 },
+  label: { fontSize: 12, fontWeight: "bold", color: "#666", marginBottom: 5 },
+  input: { borderWidth: 1, borderColor: "#ddd", borderRadius: 10, padding: 12 },
   option: {
-    paddingVertical: 15,
+    paddingVertical: 18,
     borderBottomWidth: 1,
     borderColor: "#eee",
+    paddingHorizontal: 10,
   },
-
   save: {
-    backgroundColor: "#FFC107",
-    padding: 12,
-    borderRadius: 10,
+    backgroundColor: "#4A6295",
+    padding: 15,
+    borderRadius: 12,
     marginTop: 10,
     alignItems: "center",
   },
-
-  saveText: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
-
+  saveText: { color: "#fff", fontWeight: "bold" },
   logout: {
-    backgroundColor: "red",
-    marginTop: 20,
-    padding: 12,
-    borderRadius: 10,
+    backgroundColor: "#ff4444",
+    marginTop: 30,
+    padding: 15,
+    borderRadius: 12,
     alignItems: "center",
   },
-
-  logoutText: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
+  logoutText: { color: "#fff", fontWeight: "bold" },
 });
