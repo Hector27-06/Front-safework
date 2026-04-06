@@ -5,6 +5,7 @@ import React, { useCallback, useState } from "react";
 import {
   SafeAreaView,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -20,90 +21,166 @@ export default function HistoryScreen() {
   useFocusEffect(
     useCallback(() => {
       const load = async () => {
-        const data = await AsyncStorage.getItem("@local_reports");
-        const role = await AsyncStorage.getItem("userRole");
-        const userData = await AsyncStorage.getItem("userData");
+        try {
+          // Mantenemos tus llaves originales de AsyncStorage
+          const data = await AsyncStorage.getItem("@local_reports");
+          const role = await AsyncStorage.getItem("userRole");
+          const userDataRaw = await AsyncStorage.getItem("userData");
 
-        if (data) {
-          let allReports = JSON.parse(data);
-          if (role === "Gerente") {
-            setReports(allReports); // Gerente ve todo
-          } else if (role === "Supervisor" && userData) {
-            const myArea = JSON.parse(userData).area;
-            setReports(
-              allReports.filter((r: any) => r.areaIncidente === myArea),
-            ); // Filtro por área
-          } else {
-            const myEmail = JSON.parse(userData || "{}").email;
-            setReports(
-              allReports.filter((r: any) => r.reportadoPor === myEmail),
-            );
+          if (data) {
+            let allReports = JSON.parse(data);
+
+            // LÓGICA DE FILTRADO ORIGINAL [RESTAURADA]
+            if (role === "Gerente" || role === "Manager") {
+              setReports(allReports); // Gerente ve todo
+            } else if (role === "Supervisor" && userDataRaw) {
+              const myArea = JSON.parse(userDataRaw).area;
+              setReports(
+                allReports.filter(
+                  (r: any) =>
+                    r.areaIncidente === myArea || r.incidentArea === myArea,
+                ),
+              );
+            } else if (userDataRaw) {
+              const myEmail = JSON.parse(userDataRaw).email;
+              setReports(
+                allReports.filter(
+                  (r: any) =>
+                    r.reportadoPor === myEmail || r.reportedBy === myEmail,
+                ),
+              );
+            } else {
+              setReports(allReports); // Fallback
+            }
           }
+        } catch (error) {
+          console.error("Error loading reports", error);
         }
       };
       load();
     }, []),
   );
 
-  const getStatusColor = (g: string) =>
-    g === "Alto" ? "#E74C3C" : g === "Medio" ? "#F1C40F" : "#2ECC71";
+  // Colores de prioridad (soporta Esp/Eng)
+  const getStatusColor = (g: string) => {
+    const priority = g?.toLowerCase();
+    if (priority === "alto" || priority === "high") return "#E74C3C";
+    if (priority === "medio" || priority === "medium") return "#F1C40F";
+    return "#2ECC71";
+  };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.mainContainer}>
+      <StatusBar barStyle="light-content" />
+
+      {/* Header Estilo SafeWork */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Actividad Reciente</Text>
+        <SafeAreaView>
+          <Text style={styles.headerTitle}>Recent Activity</Text>
+          <Text style={styles.headerSubtitle}>Safety Monitoring System</Text>
+        </SafeAreaView>
       </View>
-      <View style={styles.container}>
-        <View style={styles.searchContainer}>
-          <Ionicons name="search-outline" size={20} color="#888" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Buscar reporte..."
-            onChangeText={setSearchQuery}
-          />
+
+      <View style={styles.body}>
+        {/* Buscador funcional */}
+        <View style={styles.searchSection}>
+          <View style={styles.searchContainer}>
+            <Ionicons name="search-outline" size={20} color="#94A3B8" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search reports..."
+              placeholderTextColor="#94A3B8"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </View>
         </View>
-        <ScrollView showsVerticalScrollIndicator={false}>
+
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
           {reports
-            .filter((r: any) =>
-              r.titulo.toLowerCase().includes(searchQuery.toLowerCase()),
-            )
+            .filter((r: any) => {
+              const title = r.titulo || r.title || "";
+              return title.toLowerCase().includes(searchQuery.toLowerCase());
+            })
             .map((item: any) => (
               <HistoryItem
                 key={item._id}
-                faceType={item.nivelGravedad === "Alto" ? "sad" : "happy"}
-                title={item.titulo}
-                status={item.estado}
-                statusColor={getStatusColor(item.nivelGravedad)}
+                // Soporte para iconos según gravedad
+                faceType={
+                  item.nivelGravedad === "Alto" || item.severityLevel === "High"
+                    ? "sad"
+                    : "happy"
+                }
+                title={item.titulo || item.title}
+                status={item.estado || item.status}
+                statusColor={getStatusColor(
+                  item.nivelGravedad || item.severityLevel,
+                )}
                 onPress={() =>
                   router.push({ pathname: "/report-detail", params: item })
                 }
               />
             ))}
+
+          {reports.length === 0 && (
+            <View style={styles.emptyState}>
+              <Text style={{ color: "#94A3B8" }}>
+                No reports available for your role.
+              </Text>
+            </View>
+          )}
         </ScrollView>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "white" },
+  mainContainer: { flex: 1, backgroundColor: "#4A6295" },
   header: {
-    backgroundColor: "#45BC75",
-    padding: 20,
-    paddingTop: 50,
-    alignItems: "center",
+    backgroundColor: "#4A6295",
+    paddingHorizontal: 25,
+    paddingBottom: 40,
+    paddingTop: 10,
   },
-  headerTitle: { color: "white", fontSize: 18, fontWeight: "bold" },
-  container: { flex: 1, padding: 20 },
+  headerTitle: {
+    color: "white",
+    fontSize: 24,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  headerSubtitle: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 14,
+    textAlign: "center",
+    marginTop: 5,
+  },
+  body: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+    borderTopLeftRadius: 35,
+    borderTopRightRadius: 35,
+    marginTop: -20,
+  },
+  searchSection: {
+    paddingHorizontal: 25,
+    marginTop: 25,
+    marginBottom: 15,
+  },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#DDD",
-    borderRadius: 10,
+    backgroundColor: "white",
+    borderRadius: 15,
     paddingHorizontal: 15,
-    height: 45,
-    marginBottom: 15,
+    height: 50,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
   },
-  searchInput: { flex: 1, marginLeft: 10 },
+  searchInput: { flex: 1, marginLeft: 10, fontSize: 16 },
+  scrollContent: { paddingHorizontal: 25, paddingBottom: 40 },
+  emptyState: { alignItems: "center", marginTop: 50 },
 });
