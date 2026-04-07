@@ -1,32 +1,24 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
-
-const API_BASE_URL = "https://tu-api-safework.com/api"; // Tu URL real
+import api from "../models/api";
 
 export const authService = {
-  // 1.1 Iniciar Sesión
   login: async (email, password) => {
-    const response = await axios.post(`${API_BASE_URL}/auth/loginUser`, {
+    const res = await api.post("/auth/loginUser", {
       email,
       password,
     });
-    if (response.data.token) {
-      await AsyncStorage.setItem("user_token", response.data.token);
-      await AsyncStorage.setItem(
-        "user_data",
-        JSON.stringify(response.data.usuario),
-      );
+
+    if (res.data.token) {
+      await AsyncStorage.setItem("userToken", res.data.token);
+      await AsyncStorage.setItem("userRole", res.data.usuario.rol);
+      await AsyncStorage.setItem("userData", JSON.stringify(res.data.usuario));
     }
-    return response.data;
+
+    return res.data;
   },
 
-  // 1.2 Registrar Empleado
-  register: async (userData) => {
-    // Nota: El contrato pide email, password, rol y area
-    const response = await axios.post(
-      `${API_BASE_URL}/auth/createUser`,
-      userData,
-    );
-    return response.data;
+  register: async (data) => {
+    const res = await api.post("/auth/createUser", data);
+    return res.data;
   },
 };

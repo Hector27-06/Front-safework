@@ -1,13 +1,9 @@
-import api from "./api";
+import api from "../models/api";
 
-export const reportService = {
-  getAllReports: async () => {
-    const response = await api.get("/reportes/getAllReports");
-    return response.data; // Devuelve un array de reportes
-  },
+const createReporte = async (data) => {
+  return await api.post("/reportes/createReporte", data);
+};
 
-  createReporte: async (reportData) => {
-    const response = await api.post("/reportes/createReporte", reportData);
-    return response.data; // Devuelve el reporte creado
-  },
+export default {
+  createReporte,
 };

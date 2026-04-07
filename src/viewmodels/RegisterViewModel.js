@@ -1,15 +1,15 @@
 import { useState } from "react";
-import { validateEmail, validatePassword } from "../helpers/validators"; // Importamos los tuyos
-import apiUsers from "../models/users";
+import { validateEmail, validatePassword } from "../helpers/validators";
+import { authService } from "../services/authService";
 
 export const useRegisterViewModel = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const onRegister = async (values, onSuccess) => {
-    // 1. Validaciones usando tus helpers
+    // VALIDACIONES
     if (!validateEmail(values.email)) {
-      setError("Por favor, ingresa un correo de Gmail válido.");
+      setError("Por favor, ingresa un correo válido.");
       return;
     }
 
@@ -20,8 +20,13 @@ export const useRegisterViewModel = () => {
       return;
     }
 
-    if (values.name.trim().length < 3) {
+    if (!values.name || values.name.trim().length < 3) {
       setError("El nombre es demasiado corto.");
+      return;
+    }
+
+    if (!values.area || !values.rol) {
+      setError("Debes seleccionar área y rol.");
       return;
     }
 
@@ -29,16 +34,16 @@ export const useRegisterViewModel = () => {
     setError(null);
 
     try {
-      const response = await apiUsers.post("/auth/createUser", values);
-      if (response.status === 201 || response.status === 200) {
-        setLoading(false);
-        if (onSuccess) onSuccess();
-      }
+      await authService.register(values);
+
+      if (onSuccess) onSuccess();
     } catch (err) {
-      setLoading(false);
-      // Aquí atrapamos el error "El usuario ya existe" que sale en tu captura
-      const msg = err.response?.data?.message || "Error en el registro";
+      const msg =
+        err?.response?.data?.message || err?.message || "Error en el registro";
+
       setError(msg);
+    } finally {
+      setLoading(false);
     }
   };
 

@@ -1,14 +1,16 @@
 import { useState } from "react";
 
-export const useForm = (initialState = {}) => {
-  const [form, setForm] = useState(initialState);
+export const useForm = (initialValues) => {
+  const [form, setForm] = useState(initialValues);
 
   const onChange = (value, field) => {
-    setForm({ ...form, [field]: value });
+    setForm({
+      ...form,
+      [field]: value,
+    });
   };
 
   return {
-    ...form, // <--- Esto permite extraer { email, password, name }
     form,
     onChange,
   };
