@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { Alert } from "react-native";
-import apiUsers from "../models/users";
+import { userService } from "../models/users";
 
 export const useManageUsersViewModel = () => {
   const [users, setUsers] = useState([]);
@@ -8,25 +8,42 @@ export const useManageUsersViewModel = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
 
-  // Cargar usuarios desde la API
   const fetchUsers = async () => {
     try {
-      setLoading(true);
-      const res = await apiUsers.get("/auth/users");
-      setUsers(res.data);
-      
-      if (res.data.length === 0) {
-        console.log("Servidor conectado, pero BD vacía.");
+      console.log("--- INTENTANDO CONECTAR A LA API ---");
+      if (!refreshing) setLoading(true);
+
+      const res = await userService.getAllUsers();
+
+      console.log("RESPUESTA RECIBIDA:", res.data); // 👈 Revisa esto en tu terminal
+
+      // Si el backend manda los usuarios directo en res.data
+      if (res.data && Array.isArray(res.data)) {
+        setUsers(res.data);
+      }
+      // Si el backend los manda dentro de un objeto (ej: res.data.users)
+      else if (res.data.users && Array.isArray(res.data.users)) {
+        setUsers(res.data.users);
+      } else {
+        console.log("Ojo: La API no mandó un arreglo. Mandó:", res.data);
+        setUsers([]);
       }
     } catch (err) {
-      console.log("Error al obtener usuarios:", err.message);
-      Alert.alert(
-        "Error de Conexión",
-        `No se pudo conectar a la API.\nStatus: ${err.response?.status || "Offline"}`
-      );
+      console.log("--- ERROR DETECTADO ---");
+      console.log("Status:", err.response?.status);
+      console.log("Mensaje:", err.response?.data || err.message);
+
+      let msg = "No se pudo conectar. Revisa que el Backend esté corriendo.";
+      if (err.response?.status === 401)
+        msg = "Sesión expirada (Token no válido).";
+      if (err.response?.status === 404)
+        msg = "Ruta no encontrada en el servidor.";
+
+      Alert.alert("Error de API", msg);
     } finally {
       setLoading(false);
       setRefreshing(false);
+      console.log("--- PROCESO TERMINADO ---");
     }
   };
 
@@ -34,28 +51,25 @@ export const useManageUsersViewModel = () => {
     fetchUsers();
   }, []);
 
-  // Lógica de eliminación con confirmación
-  const deleteUser = (userId, email) => {
-    Alert.alert("Eliminar Usuario", `¿Estás seguro de borrar a ${email}?`, [
-      { text: "Cancelar", style: "cancel" },
+  const deleteUser = (id, email) => {
+    Alert.alert("Confirmar", `¿Borrar a ${email}?`, [
+      { text: "No" },
       {
-        text: "Eliminar",
-        style: "destructive",
+        text: "Sí",
         onPress: async () => {
           try {
-            await apiUsers.delete(`/auth/users/${userId}`);
-            setUsers((prev) => prev.filter((u) => u._id !== userId));
+            await userService.deleteUser(id);
+            setUsers((prev) => prev.filter((u) => u._id !== id));
           } catch (e) {
-            Alert.alert("Error", "No se pudo eliminar el usuario.");
+            Alert.alert("Error", "No se pudo borrar.");
           }
         },
       },
     ]);
   };
 
-  // Filtrado reactivo
   const filteredUsers = users.filter((u) =>
-    (u.email || "").toLowerCase().includes(search.toLowerCase())
+    (u.email || "").toLowerCase().includes(search.toLowerCase()),
   );
 
   return {
@@ -65,6 +79,6 @@ export const useManageUsersViewModel = () => {
     search,
     setSearch,
     fetchUsers,
-    deleteUser
+    deleteUser,
   };
 };

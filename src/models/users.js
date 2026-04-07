@@ -1,29 +1,32 @@
 import axios from "axios";
-import * as SecureStore from "expo-secure-store"; // 🔐 Importación de seguridad
+import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
 
-const apiUsers = axios.create({
-  // URL base de tu backend en Render
-  baseURL: "https://safework-backend.onrender.com/api",
-  timeout: 10000,
-  headers: { "Content-Type": "application/json" },
+const BASE_URL =
+  Platform.OS === "android"
+    ? "http://10.0.2.2:3000/api"
+    : "http://localhost:3000/api";
+
+const api = axios.create({
+  baseURL: BASE_URL,
+  timeout: 5000,
 });
 
-// Interceptor para inyectar el Token desde el Keychain
-apiUsers.interceptors.request.use(
+// Esto pega el token automáticamente en cada petición (como hiciste en Thunder Client)
+api.interceptors.request.use(
   async (config) => {
-    try {
-      // 🔑 Recuperamos el token de forma segura
-      const token = await SecureStore.getItemAsync("userToken");
-
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    } catch (error) {
-      console.log("Error al recuperar token del Keychain", error);
+    const token = await SecureStore.getItemAsync("userToken");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
   (error) => Promise.reject(error),
 );
 
-export default apiUsers;
+export const userService = {
+  getAllUsers: () => api.get("/auth/users"),
+  deleteUser: (id) => api.delete(`/auth/users/${id}`),
+};
+
+export default api;
