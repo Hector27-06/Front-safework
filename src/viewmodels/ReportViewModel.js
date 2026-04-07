@@ -2,17 +2,16 @@ import { useState } from "react";
 import { reportService } from "../services/reportService";
 
 export const useReportViewModel = () => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [currentStep, setCurrentStep] = useState(1);
-  const [modalVisible, setModalVisible] = useState({ area: false });
-
   const [form, setForm] = useState({
     title: "",
     description: "",
     severityLevel: "Medio",
-    area: "", // Usamos 'area' para ser compatibles con tu PositionPicker
+    area: "",
   });
+  const [currentStep, setCurrentStep] = useState(1);
+  const [modalVisible, setModalVisible] = useState({ area: false });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const validate = () => {
     if (currentStep === 1) {
@@ -34,7 +33,6 @@ export const useReportViewModel = () => {
     setLoading(true);
     setError(null);
 
-    // Mapeo para el backend: transformamos 'area' en 'areaIncidente'
     const dataFinal = {
       titulo: form.title,
       descripcion: form.description,
@@ -48,9 +46,7 @@ export const useReportViewModel = () => {
       if (onSuccess) onSuccess();
     } catch (err) {
       setLoading(false);
-      setError(
-        err.response ? `Error ${err.response.status}` : "Error de conexión",
-      );
+      setError(err.response?.data?.message || "Error de conexión");
     }
   };
 
@@ -58,19 +54,17 @@ export const useReportViewModel = () => {
     form,
     setForm,
     currentStep,
+    setCurrentStep,
+    modalVisible,
+    setModalVisible,
     loading,
     error,
     setError,
-    modalVisible,
-    setModalVisible,
     onSendReport,
     nextStep: () => {
       const err = validate();
       if (err) setError(err);
-      else {
-        setError(null);
-        setCurrentStep((prev) => prev + 1);
-      }
+      else setCurrentStep((prev) => prev + 1);
     },
     prevStep: () => setCurrentStep((prev) => prev - 1),
   };

@@ -20,7 +20,7 @@ const AREAS = [
 ];
 
 export const CreateReportView = () => {
-  const vm = useReportViewModel() as any;
+  const vm = useReportViewModel();
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -30,13 +30,14 @@ export const CreateReportView = () => {
       </View>
 
       <View style={styles.card}>
+        {/* Paso 1 */}
         {vm.currentStep === 1 && (
           <View>
             <AuthInput
               label="Título"
               placeholder="Ej: Falla eléctrica"
               value={vm.form.title}
-              onChangeText={(v: string) => {
+              onChangeText={(v) => {
                 vm.setError(null);
                 vm.setForm({ ...vm.form, title: v });
               }}
@@ -52,7 +53,7 @@ export const CreateReportView = () => {
               onClose={() =>
                 vm.setModalVisible({ ...vm.modalVisible, area: false })
               }
-              onSelect={(item: any) => {
+              onSelect={(item) => {
                 vm.setError(null);
                 vm.setForm({ ...vm.form, area: item.value });
                 vm.setModalVisible({ ...vm.modalVisible, area: false });
@@ -61,6 +62,7 @@ export const CreateReportView = () => {
           </View>
         )}
 
+        {/* Paso 2 */}
         {vm.currentStep === 2 && (
           <View>
             <Text style={styles.label}>Nivel de Gravedad</Text>
@@ -85,12 +87,13 @@ export const CreateReportView = () => {
           </View>
         )}
 
+        {/* Paso 3 */}
         {vm.currentStep === 3 && (
           <AuthInput
             label="Descripción"
             placeholder="Describe el problema..."
             value={vm.form.description}
-            onChangeText={(v: string) => {
+            onChangeText={(v) => {
               vm.setError(null);
               vm.setForm({ ...vm.form, description: v });
             }}
@@ -109,7 +112,9 @@ export const CreateReportView = () => {
             style={[styles.button, { flex: vm.currentStep === 1 ? 1 : 2 }]}
             onPress={() =>
               vm.currentStep === 3
-                ? vm.onSendReport(() => Alert.alert("Éxito", "Reporte enviado"))
+                ? vm.onSendReport(() =>
+                    Alert.alert("Éxito", "Reporte enviado correctamente"),
+                  )
                 : vm.nextStep()
             }
             disabled={vm.loading}
