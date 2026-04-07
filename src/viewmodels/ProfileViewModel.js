@@ -1,33 +1,61 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useState } from "react";
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 
-export default function useProfileViewModel() {
-  const [user, setUser] = useState({});
-  const [form, setForm] = useState({
+export const useProfileViewModel = () => {
+  const router = useRouter();
+  const [tab, setTab] = useState("info");
+  const [role, setRole] = useState("");
+  const [user, setUser] = useState({
     name: "",
     email: "",
-    password: "",
+    position: "",
+    area: "",
   });
 
-  const loadUser = async () => {
-    const data = await AsyncStorage.getItem("user_safe_work");
-    const parsed = data ? JSON.parse(data) : {};
+  useEffect(() => {
+    loadUserData();
+  }, []);
 
-    setUser(parsed);
-    setForm(parsed);
+  const loadUserData = async () => {
+    try {
+      const data = await AsyncStorage.getItem("userData");
+      const savedRole = await AsyncStorage.getItem("userRole");
+
+      if (data) {
+        const parsedUser = JSON.parse(data);
+        setUser({
+          name: parsedUser.fullName || parsedUser.email.split("@")[0],
+          email: parsedUser.email,
+          position: parsedUser.rol || parsedUser.role || "Not assigned",
+          area: parsedUser.area || "General Area",
+        });
+      }
+      setRole(savedRole || "");
+    } catch (error) {
+      console.error("Error loading profile data:", error);
+    }
   };
 
-  const updateUser = async () => {
-    await AsyncStorage.setItem("user_safe_work", JSON.stringify(form));
-    setUser(form);
-    alert("Perfil actualizado");
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.multiRemove(["userToken", "userRole", "userData"]);
+      router.replace("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
+
+  const navigateTo = (path) => {
+    router.push(path);
   };
 
   return {
     user,
-    form,
-    setForm,
-    loadUser,
-    updateUser,
+    role,
+    tab,
+    setTab,
+    handleLogout,
+    navigateTo,
   };
-}
+};

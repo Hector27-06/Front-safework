@@ -1,148 +1,92 @@
-import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+// @ts-nocheck
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
-  SafeAreaView,
+  ActivityIndicator,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-
-// Components
 import { ActivityItem } from "../components/home/ActivityItem";
 import { GeneralStatus } from "../components/home/GeneralStatus";
 import { HomeHeader } from "../components/home/HomeHeader";
+import { useHomeViewModel } from "../viewmodels/HomeViewModel";
 
 export const ExploreView = () => {
   const router = useRouter();
-  const [userEmail, setUserEmail] = useState<string>("Loading...");
-
-  // State for stats to fix the TypeScript error in GeneralStatus
-  const [stats, setStats] = useState({
-    urgent: 2,
-    medium: 5,
-    low: 12,
-  });
-
-  useEffect(() => {
-    const getUserData = async () => {
-      try {
-        const data = await AsyncStorage.getItem("user_data");
-
-        // FIX: Verify data exists before parsing to avoid "null" error
-        if (data) {
-          const user = JSON.parse(data);
-          // Verify user object and email property exist
-          if (user && user.email) {
-            setUserEmail(user.email);
-          } else {
-            setUserEmail("SafeWork User");
-          }
-        } else {
-          setUserEmail("Guest User");
-        }
-      } catch (error) {
-        console.error("Error loading user data", error);
-        setUserEmail("User Error");
-      }
-    };
-    getUserData();
-  }, []);
-
-  const handleGoToNotifications = () => {
-    router.push("/notifications");
-  };
+  const { displayReports, counts, loading } = useHomeViewModel();
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" />
-
-      {/* Blue Top Section */}
+    <View style={styles.container}>
       <HomeHeader
         onReportPress={() => router.push("/(tabs)/report")}
-        onNotifyPress={handleGoToNotifications}
+        onNotifyPress={() => router.push("/notifications")}
       />
 
-      {/* Main Content White Card */}
-      <View style={styles.contentCard}>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 100 }}
-        >
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>My Recent Activity</Text>
-            <TouchableOpacity onPress={() => router.push("/history")}>
-              <Text style={styles.seeAllText}>See All</Text>
-            </TouchableOpacity>
-          </View>
+      <ScrollView
+        style={styles.contentCard}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Panel de Control</Text>
+          <TouchableOpacity onPress={() => router.push("/(tabs)/history")}>
+            <Text style={styles.seeAll}>Ver Historial {">"}</Text>
+          </TouchableOpacity>
+        </View>
 
-          {/* Activity List */}
-          <View style={styles.activityList}>
-            <ActivityItem
-              icon="checkmark-circle"
-              color="#2ECC71"
-              title="Accident resulting in Injury"
-              status="Resolved"
-            />
-            <ActivityItem
-              icon="close-circle"
-              color="#E74C3C"
-              title="Unsafe Condition"
-              status="In Progress"
-            />
-            <ActivityItem
-              icon="alert-circle"
-              color="#F39C12"
-              title="Electrical Problem"
-              status="Under Review"
-            />
-          </View>
-
-          {/* Stats Section - FIX: Added missing props */}
-          <Text
-            style={[styles.sectionTitle, { marginTop: 25, marginBottom: 15 }]}
-          >
-            General Overview
-          </Text>
-          <GeneralStatus
-            urgent={stats.urgent}
-            medium={stats.medium}
-            low={stats.low}
+        {loading ? (
+          <ActivityIndicator
+            size="large"
+            color="#4A6295"
+            style={{ marginTop: 20 }}
           />
-
-          {/* User Footer Info */}
-          <View style={styles.footerContainer}>
-            <Ionicons name="person-circle-outline" size={18} color="#BBB" />
-            <Text style={styles.userFooter}>Logged in as: {userEmail}</Text>
+        ) : displayReports.length > 0 ? (
+          displayReports.map((item) => (
+            <ActivityItem
+              key={item._id || item.id}
+              // IMPORTANTE: Mapeo de nombres de variables
+              title={item.titulo || item.title || "Incidente sin nombre"}
+              status={item.estado === "Resuelto" ? "Resuelto" : "Pendiente"}
+              icon={
+                item.estado === "Resuelto" ? "checkmark-circle" : "alert-circle"
+              }
+              color={
+                item.estado === "Resuelto"
+                  ? "#2ECC71"
+                  : item.nivelGravedad === "Alto"
+                    ? "#E74C3C"
+                    : "#F39C12"
+              }
+            />
+          ))
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No hay actividades recientes</Text>
           </View>
-        </ScrollView>
-      </View>
-    </SafeAreaView>
+        )}
+
+        <View style={styles.divider} />
+
+        <GeneralStatus
+          urgent={counts.urgent}
+          medium={counts.medium}
+          low={counts.low}
+        />
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#4A6295",
-  },
+  container: { flex: 1, backgroundColor: "#4A6295" },
   contentCard: {
     flex: 1,
     backgroundColor: "white",
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
-    paddingHorizontal: 25,
-    paddingTop: 30,
-    marginTop: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -5 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 10,
+    padding: 25,
   },
   sectionHeader: {
     flexDirection: "row",
@@ -150,33 +94,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 20,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  seeAllText: {
-    color: "#4A6295",
-    fontWeight: "600",
-    fontSize: 14,
-  },
-  activityList: {
-    gap: 10,
-  },
-  footerContainer: {
-    marginTop: 40,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: "#F0F0F0",
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  userFooter: {
-    textAlign: "center",
-    color: "#BBB",
-    fontSize: 12,
-    marginLeft: 5,
-  },
+  sectionTitle: { fontSize: 18, fontWeight: "bold", color: "#333" },
+  seeAll: { color: "#888", fontSize: 14 },
+  emptyContainer: { padding: 40, alignItems: "center" },
+  emptyText: { color: "#AAA", fontStyle: "italic" },
+  divider: { height: 1, backgroundColor: "#EEE", marginVertical: 20 },
 });
