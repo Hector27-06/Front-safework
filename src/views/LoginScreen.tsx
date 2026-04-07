@@ -48,11 +48,10 @@ export const LoginView = ({
         <AuthButton title="Log In" onPress={onLogin} loading={loading} />
       </View>
 
-      <TouchableOpacity onPress={onSignUp} style={styles.footer}>
-        <Text style={styles.footerText}>
-          Don't have an account? <Text style={styles.signUpText}>Sign Up</Text>
-        </Text>
-      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={onSignUp}
+        style={styles.footer}
+      ></TouchableOpacity>
     </View>
   </View>
 );
