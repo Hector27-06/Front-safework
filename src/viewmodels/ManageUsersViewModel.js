@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Alert } from "react-native";
-import { userService } from "../models/users";
+import { userService } from "../services/UserService";
 
 export const useManageUsersViewModel = () => {
   const [users, setUsers] = useState([]);

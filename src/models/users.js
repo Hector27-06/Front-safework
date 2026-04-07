@@ -1,21 +1,17 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
-import * as SecureStore from "expo-secure-store";
-import { Platform } from "react-native";
 
-const BASE_URL =
-  Platform.OS === "android"
-    ? "http://10.0.2.2:3000/api"
-    : "http://localhost:3000/api";
-
-const api = axios.create({
-  baseURL: BASE_URL,
-  timeout: 5000,
+const apiUsers = axios.create({
+  // URL base terminada en /api según el contrato
+  baseURL: "https://safework-backend.onrender.com/api",
+  timeout: 10000,
+  headers: { "Content-Type": "application/json" },
 });
 
-// Esto pega el token automáticamente en cada petición (como hiciste en Thunder Client)
-api.interceptors.request.use(
+// Interceptor para enviar el Token del Gerente logueado
+apiUsers.interceptors.request.use(
   async (config) => {
-    const token = await SecureStore.getItemAsync("userToken");
+    const token = await AsyncStorage.getItem("userToken");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -24,9 +20,4 @@ api.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
-export const userService = {
-  getAllUsers: () => api.get("/auth/users"),
-  deleteUser: (id) => api.delete(`/auth/users/${id}`),
-};
-
-export default api;
+export default apiUsers;

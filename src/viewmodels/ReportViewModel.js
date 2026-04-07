@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { reportService } from "../models/users";
+import { reportService } from "../services/reportService";
 
 export const useReportViewModel = () => {
   const [loading, setLoading] = useState(false);

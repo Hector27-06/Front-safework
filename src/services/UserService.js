@@ -1,15 +1,5 @@
 import api from "./api";
 
-const UserService = {
-  async getUserProfile() {
-    const res = await api.get("/user");
-    return res.data;
-  },
+export const getAllUsers = () => api.get("/auth/users");
 
-  async updateUserProfile(data) {
-    const res = await api.put("/user", data);
-    return res.data;
-  },
-};
-
-export default UserService;
+export const deleteUser = (id) => api.delete(`/auth/users/${id}`);
