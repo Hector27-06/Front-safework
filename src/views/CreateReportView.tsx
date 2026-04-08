@@ -1,3 +1,4 @@
+import { useRouter } from "expo-router";
 import React from "react";
 import {
   ActivityIndicator,
@@ -8,40 +9,36 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
 import { AuthInput } from "../components/Auth/AuthInput";
 import { PositionPicker } from "../components/Auth/PositionPicker";
+import { AREAS } from "../components/constants/areas";
 import { useReportViewModel } from "../viewmodels/ReportViewModel";
-
-const AREAS = [
-  { id: "1", label: "Almacén", value: "Almacén" },
-  { id: "2", label: "Producción", value: "Producción" },
-  { id: "3", label: "Mantenimiento", value: "Mantenimiento" },
-  { id: "4", label: "Oficinas", value: "Oficinas" },
-];
 
 export const CreateReportView = () => {
   const vm = useReportViewModel();
+  const router = useRouter();
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      {/* HEADER */}
       <View style={styles.header}>
         <Text style={styles.title}>Nuevo Reporte</Text>
         <Text style={styles.subtitle}>Paso {vm.currentStep} de 3</Text>
       </View>
 
+      {/* CARD */}
       <View style={styles.card}>
-        {/* Paso 1 */}
+        {/* PASO 1 */}
         {vm.currentStep === 1 && (
-          <View>
+          <>
             <AuthInput
               label="Título"
               placeholder="Ej: Falla eléctrica"
               value={vm.form.title}
-              onChangeText={(v) => {
-                vm.setError(null);
-                vm.setForm({ ...vm.form, title: v });
-              }}
+              onChangeText={(v) => vm.setForm({ ...vm.form, title: v })}
             />
+
             <PositionPicker
               label="Área"
               selectedLabel={vm.form.area || "Seleccionar área"}
@@ -54,75 +51,91 @@ export const CreateReportView = () => {
                 vm.setModalVisible({ ...vm.modalVisible, area: false })
               }
               onSelect={(item) => {
-                vm.setError(null);
                 vm.setForm({ ...vm.form, area: item.value });
                 vm.setModalVisible({ ...vm.modalVisible, area: false });
               }}
             />
-          </View>
+          </>
         )}
 
-        {/* Paso 2 */}
+        {/* PASO 2 */}
         {vm.currentStep === 2 && (
-          <View>
-            <Text style={styles.label}>Nivel de Gravedad</Text>
-            {["Bajo", "Medio", "Alto"].map((level) => (
-              <TouchableOpacity
-                key={level}
-                style={[
-                  styles.selector,
-                  vm.form.severityLevel === level && styles.selectorActive,
-                ]}
-                onPress={() => vm.setForm({ ...vm.form, severityLevel: level })}
-              >
-                <Text
-                  style={
-                    vm.form.severityLevel === level ? { color: "#fff" } : {}
-                  }
-                >
-                  {level}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          <>
+            <Text style={styles.label}>Nivel de gravedad</Text>
+
+            <View style={styles.levelContainer}>
+              {["Bajo", "Medio", "Alto"].map((level) => {
+                const isSelected = vm.form.severityLevel === level;
+
+                return (
+                  <TouchableOpacity
+                    key={level}
+                    style={[
+                      styles.levelButton,
+                      isSelected && styles.levelSelected,
+                    ]}
+                    onPress={() =>
+                      vm.setForm({
+                        ...vm.form,
+                        severityLevel: level,
+                      })
+                    }
+                  >
+                    <Text
+                      style={[
+                        styles.levelText,
+                        isSelected && styles.levelTextSelected,
+                      ]}
+                    >
+                      {level}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </>
         )}
 
-        {/* Paso 3 */}
+        {/* PASO 3 */}
         {vm.currentStep === 3 && (
           <AuthInput
             label="Descripción"
             placeholder="Describe el problema..."
             value={vm.form.description}
-            onChangeText={(v) => {
-              vm.setError(null);
-              vm.setForm({ ...vm.form, description: v });
-            }}
+            onChangeText={(v) => vm.setForm({ ...vm.form, description: v })}
           />
         )}
 
+        {/* ERROR */}
         {vm.error && <Text style={styles.errorText}>{vm.error}</Text>}
 
+        {/* FOOTER */}
         <View style={styles.footer}>
           {vm.currentStep > 1 && (
-            <TouchableOpacity style={styles.btnBack} onPress={vm.prevStep}>
-              <Text>Atrás</Text>
+            <TouchableOpacity style={styles.backBtn} onPress={vm.prevStep}>
+              <Text style={styles.backText}>Atrás</Text>
             </TouchableOpacity>
           )}
+
           <TouchableOpacity
-            style={[styles.button, { flex: vm.currentStep === 1 ? 1 : 2 }]}
-            onPress={() =>
-              vm.currentStep === 3
-                ? vm.onSendReport(() =>
-                    Alert.alert("Éxito", "Reporte enviado correctamente"),
-                  )
-                : vm.nextStep()
-            }
-            disabled={vm.loading}
+            style={styles.button}
+            onPress={async () => {
+              if (vm.currentStep === 3) {
+                const ok = await vm.createReport();
+
+                if (ok) {
+                  Alert.alert("Éxito", "Reporte creado");
+                  router.push("/(tabs)/history");
+                }
+              } else {
+                vm.nextStep();
+              }
+            }}
           >
             {vm.loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.btnText}>
+              <Text style={styles.buttonText}>
                 {vm.currentStep === 3 ? "ENVIAR" : "SIGUIENTE"}
               </Text>
             )}
@@ -134,47 +147,105 @@ export const CreateReportView = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, backgroundColor: "#F5F5F5", paddingBottom: 20 },
-  header: {
-    backgroundColor: "#F17F18",
-    paddingVertical: 40,
-    alignItems: "center",
+  container: {
+    flexGrow: 1,
+    backgroundColor: "#F5F7FB",
   },
-  title: { fontSize: 22, fontWeight: "bold", color: "#fff" },
-  subtitle: { color: "#fff", opacity: 0.8 },
+
+  header: {
+    backgroundColor: "#4A6295",
+    paddingTop: 60,
+    paddingBottom: 30,
+    paddingHorizontal: 20,
+  },
+
+  title: {
+    color: "#fff",
+    fontSize: 22,
+    fontWeight: "bold",
+  },
+
+  subtitle: {
+    color: "#ddd",
+    marginTop: 5,
+  },
+
   card: {
     backgroundColor: "#fff",
-    margin: 20,
-    borderRadius: 15,
+    marginTop: -20,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
     padding: 20,
-    elevation: 3,
+    minHeight: 500,
   },
-  label: { fontWeight: "bold", marginBottom: 10 },
-  selector: {
-    padding: 15,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 10,
-    marginBottom: 10,
-    alignItems: "center",
+
+  label: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 15,
   },
-  selectorActive: { backgroundColor: "#4A6295", borderColor: "#4A6295" },
-  footer: { flexDirection: "row", marginTop: 20 },
-  btnBack: {
+
+  levelContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+
+  levelButton: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 10,
+    padding: 15,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: "#ccc",
-    borderRadius: 10,
+    alignItems: "center",
   },
+
+  levelSelected: {
+    backgroundColor: "#4A6295",
+    borderColor: "#4A6295",
+  },
+
+  levelText: {
+    color: "#333",
+  },
+
+  levelTextSelected: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
+
+  errorText: {
+    color: "red",
+    marginTop: 10,
+  },
+
+  footer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 30,
+  },
+
+  backBtn: {
+    padding: 10,
+  },
+
+  backText: {
+    color: "#4A6295",
+    fontWeight: "bold",
+  },
+
   button: {
+    flex: 1,
     backgroundColor: "#4A6295",
     padding: 15,
     borderRadius: 10,
     alignItems: "center",
+    marginLeft: 10,
   },
-  btnText: { color: "#fff", fontWeight: "bold" },
-  errorText: { color: "red", marginTop: 15, textAlign: "center" },
+
+  buttonText: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
 });

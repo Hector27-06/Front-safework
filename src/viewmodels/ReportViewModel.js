@@ -1,46 +1,84 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useState } from "react";
 import reportService from "../services/reportService";
 
 export const useReportViewModel = () => {
-  const [form, setForm] = useState({
-    title: "",
-    description: "",
-    severityLevel: "",
-    area: "",
-  });
-
   const [currentStep, setCurrentStep] = useState(1);
-  const [modalVisible, setModalVisible] = useState({ area: false });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const [form, setForm] = useState({
+    title: "",
+    area: "",
+    severityLevel: "",
+    description: "",
+  });
+
+  const [modalVisible, setModalVisible] = useState({
+    area: false,
+  });
+
+  // 🔥 SIGUIENTE PASO
   const nextStep = () => {
-    if (currentStep < 3) setCurrentStep(currentStep + 1);
-  };
+    if (currentStep === 1 && (!form.title || !form.area)) {
+      setError("Completa todos los campos");
+      return;
+    }
 
-  const prevStep = () => {
-    if (currentStep > 1) setCurrentStep(currentStep - 1);
-  };
+    if (currentStep === 2 && !form.severityLevel) {
+      setError("Selecciona nivel de gravedad");
+      return;
+    }
 
-  const onSendReport = async (onSuccess) => {
-    setLoading(true);
     setError(null);
+    setCurrentStep((prev) => prev + 1);
+  };
+
+  const prevStep = () => setCurrentStep((prev) => prev - 1);
+
+  // 🔥 CREAR REPORTE (MEJORADO)
+  const createReport = async () => {
+    if (!form.description) {
+      setError("La descripción es obligatoria");
+      return false;
+    }
+
+    setLoading(true);
 
     try {
-      // 🔥 MAPEAMOS CORRECTAMENTE LOS DATOS
-      const payload = {
+      const data = {
         titulo: form.title,
         descripcion: form.description,
         nivelGravedad: form.severityLevel,
         areaIncidente: form.area,
       };
 
-      await reportService.createReporte(payload);
+      const response = await reportService.createReporte(data);
 
-      if (onSuccess) onSuccess();
+      // 🔥 GUARDAR LOCAL
+      const existing = await AsyncStorage.getItem("@local_reports");
+      const reports = existing ? JSON.parse(existing) : [];
+
+      await AsyncStorage.setItem(
+        "@local_reports",
+        JSON.stringify([response.data, ...reports]),
+      );
+
+      // 🔥 RESET FORM
+      setForm({
+        title: "",
+        area: "",
+        severityLevel: "",
+        description: "",
+      });
+
+      setCurrentStep(1);
+
+      return true; // 🔥 IMPORTANTE
     } catch (err) {
-      console.log(err.response?.data);
-      setError(err.response?.data?.message || "Error al crear reporte");
+      console.log(err);
+      setError("Error al crear reporte");
+      return false;
     } finally {
       setLoading(false);
     }
@@ -52,11 +90,11 @@ export const useReportViewModel = () => {
     currentStep,
     nextStep,
     prevStep,
-    modalVisible,
-    setModalVisible,
+    createReport,
     loading,
     error,
     setError,
-    onSendReport,
+    modalVisible,
+    setModalVisible,
   };
 };

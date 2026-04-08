@@ -3,22 +3,25 @@ import api from "../models/api";
 
 export const authService = {
   login: async (email, password) => {
-    const res = await api.post("/auth/loginUser", {
+    const response = await api.post("/auth/loginUser", {
       email,
       password,
     });
 
-    if (res.data.token) {
-      await AsyncStorage.setItem("userToken", res.data.token);
-      await AsyncStorage.setItem("userRole", res.data.usuario.rol);
-      await AsyncStorage.setItem("userData", JSON.stringify(res.data.usuario));
+    console.log("LOGIN RESPONSE:", response.data);
+
+    const token = response.data.token;
+    const user =
+      response.data.user || response.data.usuario || response.data.data;
+
+    if (!user) {
+      throw new Error("Usuario no recibido del backend");
     }
 
-    return res.data;
-  },
+    await AsyncStorage.setItem("token", token);
+    await AsyncStorage.setItem("userData", JSON.stringify(user));
+    await AsyncStorage.setItem("userRole", user.role || user.rol || "User");
 
-  register: async (data) => {
-    const res = await api.post("/auth/createUser", data);
-    return res.data;
+    return response.data;
   },
 };

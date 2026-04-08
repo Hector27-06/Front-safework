@@ -1,73 +1,87 @@
-import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React from "react";
-import {
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-// Interfaz para TypeScript
-interface HomeHeaderProps {
+type Props = {
+  role?: string;
+  user?: any;
   onReportPress: () => void;
   onNotifyPress: () => void;
-}
+};
 
 export const HomeHeader = ({
+  role,
+  user,
   onReportPress,
   onNotifyPress,
-}: HomeHeaderProps) => (
-  <View style={styles.headerContainer}>
-    <View style={styles.topRow}>
+}: Props) => {
+  const router = useRouter();
+
+  return (
+    <View style={styles.container}>
+      {/* 🔥 INFO USUARIO */}
       <View>
-        <Text style={styles.appTitle}>SafeWork App</Text>
-        <Text style={styles.headerSubtitle}>
-          Having a problem? Report it here
+        <Text style={styles.greeting}>
+          Hola, {user?.nombre || user?.name || "Usuario"}
         </Text>
+
+        <Text style={styles.role}>{role || "Sin rol"}</Text>
       </View>
-      <View style={styles.headerIcons}>
-        <TouchableOpacity style={{ marginRight: 15 }}>
-          <Ionicons name="help-circle-outline" size={28} color="white" />
-        </TouchableOpacity>
-        {/* Aquí es donde se activa la navegación */}
+
+      {/* 🔥 BOTONES */}
+      <View style={styles.actions}>
+        {/* 🔔 Notificaciones */}
         <TouchableOpacity onPress={onNotifyPress}>
-          <Ionicons name="notifications" size={26} color="#FFD700" />
+          <Text style={styles.icon}>🔔</Text>
         </TouchableOpacity>
+
+        {/* ➕ Reporte */}
+        <TouchableOpacity onPress={onReportPress}>
+          <Text style={styles.icon}>➕</Text>
+        </TouchableOpacity>
+
+        {/* 👑 ADMIN */}
+        {role === "Admin" && (
+          <TouchableOpacity onPress={() => router.push("/manage-users")}>
+            <Text style={styles.admin}>Admin</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
-
-    <TouchableOpacity style={styles.reportBtn} onPress={onReportPress}>
-      <Ionicons
-        name="warning"
-        size={20}
-        color="#333"
-        style={{ marginRight: 10 }}
-      />
-      <Text style={styles.reportBtnText}>Report</Text>
-    </TouchableOpacity>
-  </View>
-);
+  );
+};
 
 const styles = StyleSheet.create({
-  headerContainer: { padding: 25, paddingTop: Platform.OS === "ios" ? 50 : 40 },
-  topRow: {
+  container: {
+    backgroundColor: "#4A6295",
+    paddingTop: 50,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 20,
+    alignItems: "center",
   },
-  appTitle: { fontSize: 24, fontWeight: "bold", color: "white" },
-  headerSubtitle: { color: "#D1D9E6", fontSize: 14, marginTop: 5 },
-  headerIcons: { flexDirection: "row", alignItems: "center" },
-  reportBtn: {
-    backgroundColor: "#FFB800",
+  greeting: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  role: {
+    color: "#ddd",
+    fontSize: 12,
+  },
+  actions: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    padding: 15,
-    borderRadius: 12,
-    marginTop: 10,
+    gap: 10,
   },
-  reportBtnText: { fontWeight: "bold", fontSize: 16, color: "#333" },
+  icon: {
+    fontSize: 20,
+    color: "#fff",
+  },
+  admin: {
+    color: "#FFD700",
+    fontWeight: "bold",
+    marginLeft: 10,
+  },
 });

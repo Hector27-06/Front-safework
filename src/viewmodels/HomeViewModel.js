@@ -1,70 +1,92 @@
-// src/viewmodels/HomeViewModel.js
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
+import { useEffect, useState } from "react";
+import reportService from "../services/reportService";
 
 export const useHomeViewModel = () => {
   const [displayReports, setDisplayReports] = useState([]);
-  const [counts, setCounts] = useState({ urgent: 0, medium: 0, low: 0 });
+  const [counts, setCounts] = useState({
+    urgent: 0,
+    medium: 0,
+    low: 0,
+  });
   const [loading, setLoading] = useState(true);
+  const [role, setRole] = useState(null);
+  const [user, setUser] = useState(null);
 
-  const loadData = useCallback(async () => {
+  const normalize = (text) =>
+    (text || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim();
+
+  const loadData = async () => {
     try {
-      const data = await AsyncStorage.getItem("@local_reports");
-      if (data) {
-        const allReports = JSON.parse(data);
-        const now = Date.now();
-        const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+      setLoading(true);
 
-        // 1. FILTRADO LÓGICO
-        const filteredForHome = allReports.filter((report) => {
-          if (report.estado !== "Resuelto") return true;
+      // 🔥 USER
+      const roleStorage = await AsyncStorage.getItem("userRole");
+      const userStorage = await AsyncStorage.getItem("userData");
 
-          // Soporta fechaCreacion o updatedAt si existe
-          const reportTime = new Date(
-            report.fechaCreacion || report.updatedAt,
-          ).getTime();
-          return now - reportTime < TWO_HOURS_MS;
-        });
+      const parsedUser = userStorage ? JSON.parse(userStorage) : null;
 
-        // 2. TOP 4 PARA ACTIVIDAD RECIENTE
-        setDisplayReports(filteredForHome.slice(0, 4));
+      setRole(roleStorage);
+      setUser(parsedUser);
 
-        // 3. CONTADORES (Solo activos)
-        const activeCounts = allReports.reduce(
-          (acc, report) => {
-            if (report.estado !== "Resuelto") {
-              const gravedad = report.nivelGravedad?.toLowerCase();
-              if (gravedad === "alto" || gravedad === "high") acc.urgent++;
-              else if (gravedad === "medio" || gravedad === "medium")
-                acc.medium++;
-              else acc.low++;
-            }
-            return acc;
-          },
-          { urgent: 0, medium: 0, low: 0 },
+      // 🔥 BACKEND
+      const res = await reportService.getReportes();
+      let reports = res.data || [];
+
+      // 🔥 NORMALIZAR DATA (IMPORTANTE)
+      reports = reports.map((r) => ({
+        ...r,
+        area: r.areaIncidente || r.area,
+        gravedad: normalize(r.nivelGravedad),
+      }));
+
+      // 🔥 FILTRO POR ROL
+      if (
+        roleStorage !== "Admin" &&
+        roleStorage !== "Gerente" &&
+        parsedUser?.area
+      ) {
+        reports = reports.filter(
+          (r) => normalize(r.area) === normalize(parsedUser.area),
         );
-
-        setCounts(activeCounts);
       }
+
+      // 🔥 ORDENAR
+      reports.sort(
+        (a, b) =>
+          new Date(b.fechaCreacion || 0) - new Date(a.fechaCreacion || 0),
+      );
+
+      // 🔥 MOSTRAR SOLO 5
+      setDisplayReports(reports.slice(0, 5));
+
+      // 🔥 CONTADORES
+      const urgent = reports.filter((r) => r.gravedad === "alto").length;
+      const medium = reports.filter((r) => r.gravedad === "medio").length;
+      const low = reports.filter((r) => r.gravedad === "bajo").length;
+
+      setCounts({ urgent, medium, low });
     } catch (error) {
-      console.error("Error cargando datos en Home:", error);
+      console.log("❌ Error:", error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
-  // Recargar datos cada vez que el usuario entre a la pestaña
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [loadData]),
-  );
+  useEffect(() => {
+    loadData();
+  }, []);
 
   return {
     displayReports,
     counts,
     loading,
-    refreshData: loadData,
+    role,
+    user,
+    reload: loadData,
   };
 };

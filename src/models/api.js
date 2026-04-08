@@ -1,18 +1,22 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://safework-backend.onrender.com/api", // 🔥 CLAVE
+  baseURL: "https://safework-backend.onrender.com/api",
 });
 
-// TOKEN
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
+// 🔥 INTERCEPTOR PARA TOKEN
+api.interceptors.request.use(
+  async (config) => {
+    const token = await AsyncStorage.getItem("token");
 
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
 
-  return config;
-});
+    return config;
+  },
+  (error) => Promise.reject(error),
+);
 
 export default api;

@@ -1,13 +1,12 @@
 import api from "../models/api";
 
 export const userService = {
-  getUsers: async () => {
-    const res = await api.get("/auth/users");
-    return res.data;
+  getAllUsers: async () => {
+    const response = await api.get("/auth/getAllUsers");
+    return response;
   },
 
   deleteUser: async (id) => {
-    const res = await api.delete(`/auth/users/${id}`);
-    return res.data;
+    return await api.delete(`/auth/deleteUser/${id}`);
   },
 };

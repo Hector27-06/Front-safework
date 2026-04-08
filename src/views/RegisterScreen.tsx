@@ -12,7 +12,9 @@ import {
 } from "react-native";
 import { useRegisterViewModel } from "../viewmodels/RegisterViewModel";
 
-// Componentes
+// 🔥 IMPORTAMOS AREAS
+import { AREAS } from "../components/constants/areas";
+
 import { AuthHeader } from "../components/Auth/AuthHeader";
 import { AuthInput } from "../components/Auth/AuthInput";
 import { PositionPicker } from "../components/Auth/PositionPicker";
@@ -23,18 +25,10 @@ const ROLES = [
   { id: "3", label: "Gerente", value: "Gerente" },
 ];
 
-const AREAS = [
-  { id: "1", label: "Almacén", value: "Almacén" },
-  { id: "2", label: "Mantenimiento", value: "Mantenimiento" },
-  { id: "3", label: "Ensamble", value: "Ensamble" },
-  { id: "4", label: "Dirección General", value: "Dirección General" },
-];
-
 export const RegisterScreen = () => {
   const router = useRouter();
   const { onRegister, loading, error } = useRegisterViewModel();
 
-  // NUEVO: Estado para mostrar éxito visualmente en pantalla
   const [success, setSuccess] = useState(false);
 
   const initialState = {
@@ -47,18 +41,19 @@ export const RegisterScreen = () => {
   };
 
   const [form, setForm] = useState(initialState);
-  const [modalVisible, setModalVisible] = useState({ area: false, rol: false });
+  const [modalVisible, setModalVisible] = useState({
+    area: false,
+    rol: false,
+  });
 
   const handleSuccess = () => {
-    setSuccess(true); // Muestra el mensaje verde
+    setSuccess(true);
 
     if (Platform.OS === "web") {
-      // En Web usamos el alert nativo porque Alert.alert falla
       alert("¡Registro Exitoso!\nEl empleado ha sido creado correctamente.");
       setForm(initialState);
       setTimeout(() => setSuccess(false), 3000);
     } else {
-      // En Móvil usamos tu Alert original
       Alert.alert(
         "¡Registro Exitoso!",
         "El empleado ha sido creado correctamente en SafeWork.",
@@ -71,13 +66,13 @@ export const RegisterScreen = () => {
             },
           },
         ],
-        { cancelable: false },
       );
     }
   };
 
   const handleRegister = () => {
     setSuccess(false);
+
     if (
       !form.email ||
       !form.password ||
@@ -91,14 +86,12 @@ export const RegisterScreen = () => {
       );
       return;
     }
+
     onRegister(form, handleSuccess);
   };
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.container}
-      showsVerticalScrollIndicator={false}
-    >
+    <ScrollView contentContainerStyle={styles.container}>
       <AuthHeader
         title="Nuevo Registro"
         subtitle="Gestión de Personal SafeWork"
@@ -115,15 +108,14 @@ export const RegisterScreen = () => {
         />
 
         <AuthInput
-          label="Correo Institucional"
-          placeholder="ejemplo@safework.com"
+          label="Correo"
+          placeholder="correo@safework.com"
           value={form.email}
           onChangeText={(v) => setForm({ ...form, email: v })}
-          autoCapitalize="none"
         />
 
         <AuthInput
-          label="Contraseña Temporal"
+          label="Contraseña"
           placeholder="••••••••"
           value={form.password}
           onChangeText={(v) => setForm({ ...form, password: v })}
@@ -156,28 +148,14 @@ export const RegisterScreen = () => {
           }}
         />
 
-        {/* FEEDBACK VISUAL: ERROR O ÉXITO */}
-        {error && (
-          <View style={styles.errorBox}>
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        )}
+        {error && <Text style={styles.errorText}>{error}</Text>}
+        {success && <Text style={styles.successText}>Usuario creado ✔</Text>}
 
-        {success && (
-          <View style={styles.successBox}>
-            <Text style={styles.successText}>¡Usuario creado con éxito!</Text>
-          </View>
-        )}
-
-        <TouchableOpacity
-          style={[styles.mainButton, loading && { opacity: 0.7 }]}
-          onPress={handleRegister}
-          disabled={loading}
-        >
+        <TouchableOpacity style={styles.button} onPress={handleRegister}>
           {loading ? (
-            <ActivityIndicator color="white" />
+            <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.buttonText}>CONFIRMAR REGISTRO</Text>
+            <Text style={styles.buttonText}>REGISTRAR</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -187,42 +165,16 @@ export const RegisterScreen = () => {
 
 const styles = StyleSheet.create({
   container: { padding: 20, backgroundColor: "#F4F7FA", flexGrow: 1 },
-  card: {
-    backgroundColor: "#FFF",
-    borderRadius: 20,
-    padding: 20,
-    elevation: 4,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#4A6295",
-    marginBottom: 20,
-    textAlign: "center",
-  },
-  mainButton: {
+  card: { backgroundColor: "#fff", borderRadius: 20, padding: 20 },
+  sectionTitle: { fontWeight: "bold", marginBottom: 15 },
+  button: {
     backgroundColor: "#4A6295",
-    padding: 18,
-    borderRadius: 12,
+    padding: 15,
+    borderRadius: 10,
+    marginTop: 20,
     alignItems: "center",
-    marginTop: 25,
   },
-  buttonText: { color: "white", fontWeight: "bold", fontSize: 15 },
-  errorBox: {
-    backgroundColor: "#FFEDED",
-    padding: 12,
-    borderRadius: 10,
-    marginTop: 15,
-  },
-  errorText: { color: "#D32F2F", textAlign: "center", fontWeight: "600" },
-  // NUEVO ESTILO PARA ÉXITO
-  successBox: {
-    backgroundColor: "#E8F5E9",
-    padding: 12,
-    borderRadius: 10,
-    marginTop: 15,
-    borderWidth: 1,
-    borderColor: "#C8E6C9",
-  },
-  successText: { color: "#2E7D32", textAlign: "center", fontWeight: "600" },
+  buttonText: { color: "#fff", fontWeight: "bold" },
+  errorText: { color: "red", textAlign: "center" },
+  successText: { color: "green", textAlign: "center" },
 });
