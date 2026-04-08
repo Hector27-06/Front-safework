@@ -14,7 +14,7 @@ export const authService = {
     const user =
       response.data.user || response.data.usuario || response.data.data;
 
-    if (!user) {
+    if (!user || !token) {
       throw new Error("Usuario no recibido del backend");
     }
 
@@ -23,5 +23,24 @@ export const authService = {
     await AsyncStorage.setItem("userRole", user.role || user.rol || "User");
 
     return response.data;
+  },
+
+  //  AHORA SÍ está dentro del objeto
+  register: async (data) => {
+    try {
+      const response = await api.post("/auth/createUser", data);
+
+      if (!response.data) {
+        throw new Error("No se recibió respuesta del servidor");
+      }
+
+      return response.data;
+    } catch (error) {
+      console.log("REGISTER ERROR:", error.response?.data || error.message);
+
+      throw new Error(
+        error.response?.data?.message || "Error en el registro"
+      );
+    }
   },
 };
