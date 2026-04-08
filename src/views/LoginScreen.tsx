@@ -58,7 +58,7 @@ export const LoginView = ({
           <TouchableOpacity
             style={[styles.button, loading && { opacity: 0.7 }]}
             onPress={() => {
-              console.log("BOTON PRESIONADO"); // 👈 DEBUG
+              console.log("BOTON PRESIONADO"); // DEBUG
               onLogin();
             }}
             disabled={loading}

@@ -20,7 +20,7 @@ export const ExploreView = () => {
 
   return (
     <View style={styles.container}>
-      {/* 🔥 HEADER */}
+      {/* HEADER */}
       <HomeHeader
         role={role || ""}
         user={user}

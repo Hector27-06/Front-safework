@@ -5,7 +5,7 @@ const api = axios.create({
   baseURL: "https://safework-backend.onrender.com/api",
 });
 
-// 🔥 INTERCEPTOR PARA TOKEN
+
 api.interceptors.request.use(
   async (config) => {
     const token = await AsyncStorage.getItem("token");

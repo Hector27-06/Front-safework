@@ -15,13 +15,13 @@ export const useManageUsersViewModel = () => {
 
       const res = await userService.getAllUsers();
 
-      console.log("RESPUESTA RECIBIDA:", res.data); // 👈 Revisa esto en tu terminal
+      console.log("RESPUESTA RECIBIDA:", res.data); 
 
-      // Si el backend manda los usuarios directo en res.data
+      // Si el backend manda los usuarios directo en un arreglo
       if (res.data && Array.isArray(res.data)) {
         setUsers(res.data);
       }
-      // Si el backend los manda dentro de un objeto (ej: res.data.users)
+      // Si el backend los manda dentro de un objeto bajo una propiedad (ejemplo: { users: [...] })
       else if (res.data.users && Array.isArray(res.data.users)) {
         setUsers(res.data.users);
       } else {

@@ -18,7 +18,7 @@ export const useReportViewModel = () => {
     area: false,
   });
 
-  // 🔥 SIGUIENTE PASO
+  
   const nextStep = () => {
     if (currentStep === 1 && (!form.title || !form.area)) {
       setError("Completa todos los campos");
@@ -36,7 +36,7 @@ export const useReportViewModel = () => {
 
   const prevStep = () => setCurrentStep((prev) => prev - 1);
 
-  // 🔥 CREAR REPORTE (MEJORADO)
+
   const createReport = async () => {
     if (!form.description) {
       setError("La descripción es obligatoria");
@@ -55,7 +55,7 @@ export const useReportViewModel = () => {
 
       const response = await reportService.createReporte(data);
 
-      // 🔥 GUARDAR LOCAL
+      
       const existing = await AsyncStorage.getItem("@local_reports");
       const reports = existing ? JSON.parse(existing) : [];
 
@@ -64,7 +64,7 @@ export const useReportViewModel = () => {
         JSON.stringify([response.data, ...reports]),
       );
 
-      // 🔥 RESET FORM
+      
       setForm({
         title: "",
         area: "",
@@ -74,7 +74,7 @@ export const useReportViewModel = () => {
 
       setCurrentStep(1);
 
-      return true; // 🔥 IMPORTANTE
+      return true; 
     } catch (err) {
       console.log(err);
       setError("Error al crear reporte");

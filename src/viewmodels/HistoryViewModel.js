@@ -22,22 +22,22 @@ export const useHistoryViewModel = () => {
       const userDataRaw = await AsyncStorage.getItem("userData");
       const user = userDataRaw ? JSON.parse(userDataRaw) : null;
 
-      // 🔥 BACKEND (IMPORTANTE)
+      
       const res = await reportService.getReportes();
       let data = res.data || [];
 
-      // 🔥 NORMALIZAR
+      
       data = data.map((r) => ({
         ...r,
         area: r.areaIncidente || r.area,
       }));
 
-      // 🔥 FILTRO POR ROL (IGUAL QUE HOME)
+      
       if (role !== "Admin" && role !== "Gerente" && user?.area) {
         data = data.filter((r) => normalize(r.area) === normalize(user.area));
       }
 
-      // 🔥 ORDENAR
+      
       data.sort(
         (a, b) =>
           new Date(b.fechaCreacion || 0) - new Date(a.fechaCreacion || 0),
@@ -51,7 +51,7 @@ export const useHistoryViewModel = () => {
     }
   }, []);
 
-  // 🔍 BUSQUEDA
+  
   const filteredReports = reports.filter((r) => {
     const title = r.titulo || r.title || "";
     return title.toLowerCase().includes(searchQuery.toLowerCase());

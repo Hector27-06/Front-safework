@@ -27,7 +27,7 @@ export const useReportDetailViewModel = () => {
       if (storedData) {
         const allReports = JSON.parse(storedData);
 
-        // Actualizamos el estado en la lista local
+        
         const updatedReports = allReports.map((r) => {
           if (r._id === reportData.id || r.id === reportData.id) {
             return { ...r, estado: "Resuelto", status: "Resolved" };
