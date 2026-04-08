@@ -25,7 +25,7 @@ export const authService = {
     return response.data;
   },
 
-  //  AHORA SÍ está dentro del objeto
+  // Registro de usuarios
   register: async (data) => {
     try {
       const response = await api.post("/auth/createUser", data);

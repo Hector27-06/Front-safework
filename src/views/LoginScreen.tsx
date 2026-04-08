@@ -1,4 +1,3 @@
-import React from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -71,12 +70,7 @@ export const LoginView = ({
           </TouchableOpacity>
         </View>
 
-        {/* REGISTRO */}
-        <TouchableOpacity onPress={onSignUp} style={styles.footer}>
-          <Text style={styles.footerText}>
-            ¿No tienes cuenta? <Text style={styles.signUpText}>Regístrate</Text>
-          </Text>
-        </TouchableOpacity>
+        
       </View>
     </View>
   );
